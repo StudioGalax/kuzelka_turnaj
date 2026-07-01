@@ -49,20 +49,20 @@ if all_stats:
         st.subheader("Celkové pořadí")
         st.dataframe(
             df_to_show,
-            use_container_width=True,
+            use_container_width=False,  # Tady je ta změna – vypneme roztahování
             hide_index=True,
             column_config={
                 "Pořadí": st.column_config.NumberColumn(
                     "Pořadí", 
-                    width=50  # Fixní šířka v pixelech - tohle je absolutní minimum
+                    width=40  # Zkusíme 40 pro maximální úsporu místa
                 ),
                 "Jméno": st.column_config.TextColumn(
                     "Jméno", 
-                    width="large"
+                    width=200 # Fixní šířka pro jména, aby nebyla zbytečně velká
                 ),
                 "Body": st.column_config.NumberColumn(
                     "Body", 
-                    width="small"
+                    width=60  # Fixní šířka pro body
                 )
             }
         )
