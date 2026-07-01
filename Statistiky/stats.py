@@ -71,10 +71,16 @@ if all_stats:
         st.plotly_chart(fig, use_container_width=True)
 
     with col3:
-        st.subheader("Rekordy kol")
-        df_rekordy = df_max_kolo.sort_values(by='Rekord', ascending=False).copy()
-        # Vynucení zarovnání na střed pomocí CSS
-        styled_rekordy = df_rekordy.style.set_properties(**{'text-align': 'center'})
-        st.table(styled_rekordy) # st.table respektuje styly
+        st.subheader("Rekordy kol (Top 10)")
+        
+        # 1. Seřadíme a vezmeme jen prvních 10 (head(10))
+        df_rekordy = df_max_kolo.sort_values(by='Rekord', ascending=False).head(10).copy()
+        
+        # 2. Odstraníme index, aby se nezobrazoval v HTML tabulce
+        df_rekordy = df_rekordy.reset_index(drop=True)
+        
+        # 3. Převedeme na styl a vycentrujeme
+        # Použijeme to_html(index=False), což je nejspolehlivější způsob, jak se indexu zbavit
+        st.write(df_rekordy.to_html(index=False, justify='center', border=0), unsafe_allow_html=True)
 else:
     st.info("Žádná data k zobrazení.")
