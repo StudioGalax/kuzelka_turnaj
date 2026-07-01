@@ -45,16 +45,22 @@ if all_stats:
     df_final = pd.merge(df_hraci, df_total, on='Jméno', how='left').fillna(0)
     df_final['Body'] = df_final['Body'].astype(int)
     
-    # SEŘAZENÍ A PŘIDÁNÍ POŘADÍ:
+    # Seřazení a přidání pořadí
     df_final = df_final.sort_values(by='Body', ascending=False).reset_index(drop=True)
-    df_final.insert(0, 'Pořadí', range(1, len(df_final) + 1)) # Vloží nový sloupec na začátek
+    df_final.insert(0, 'Pořadí', range(1, len(df_final) + 1))
 
-    # 4. Výstup
+    # 4. Výstup - TABULKA
     st.subheader("Celkové pořadí")
     st.dataframe(
         df_final,
         use_container_width=True,
-        hide_index=True # Tím schováme to automatické číslování Streamlitu
+        hide_index=True
     )
+    
+    # 5. Výstup - GRAF (tady je ten chybějící kousek!)
+    st.subheader("Grafické srovnání")
+    # Použijeme df_final pro graf, ale bez sloupce Pořadí, aby to nepletlo osu X
+    st.bar_chart(df_final.set_index('Jméno')['Body'])
+
 else:
     st.info("Žádná data k zobrazení.")
