@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import json
 import os
+import plotly.express as px
 
 # Definice cest
 DATA_FOLDER = 'Historie_turnaju_json'
@@ -73,6 +74,15 @@ if all_stats:
         )
         
         st.subheader("Grafické srovnání")
-        st.bar_chart(df_to_show.set_index('Jméno')['Body'])
+        st.subheader("Grafické srovnání")
+        
+        # Plotly graf - je interaktivní a zvládne i 50+ hráčů
+        fig = px.bar(df_to_show, x='Jméno', y='Body', color='Body', 
+                     color_continuous_scale='Blues')
+        
+        # Tady děláme graf „scroll-ovatelný“
+        fig.update_layout(xaxis={'type': 'category'})
+        
+        st.plotly_chart(fig, use_container_width=True)
 else:
     st.info("Žádná data k zobrazení.")
