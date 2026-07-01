@@ -31,12 +31,18 @@ if os.path.exists(DATA_FOLDER):
             data = json.load(f)
             for team in data.get('teams', {}).values():
                 for player_name, scores in team.items():
-                    all_stats.append({"Jméno": player_name.strip(), "Body": sum(scores)})
+                    all_stats.append({"Jméno": player_name.strip(), "Body": sum(scores), "Max_v_kole": max(scores)})
 
 # 3. Zpracování dat
 if all_stats:
     df_results = pd.DataFrame(all_stats)
+    
+    # Celkové body
     df_total = df_results.groupby('Jméno')['Body'].sum().reset_index()
+    
+    # Max nahozy (nejlepší výkon v jednom kole)
+    df_max_kolo = df_results.groupby('Jméno')['Max_v_kole'].max().reset_index()
+    df_max_kolo.rename(columns={'Max_v_kole': 'Rekord'}, inplace=True)
     
     # Propojení
     df_final = pd.merge(df_hraci, df_total, on='Jméno', how='left').fillna(0)
@@ -47,17 +53,15 @@ if all_stats:
     df_to_show = df_to_show.sort_values(by='Body', ascending=False).reset_index(drop=True)
     df_to_show.insert(0, 'Pořadí', range(1, len(df_to_show) + 1))
 
-    # Převedení na text pro vynucení zarovnání
-    df_display = df_to_show.copy()
-    df_display['Pořadí'] = df_display['Pořadí'].astype(str)
-    df_display['Body'] = df_display['Body'].astype(str)
-
-    # 4. Výstup
-    col1, col2, col3 = st.columns([1, 4, 1])
+    # 4. Výstup (Dashboard)
+    col1, col2, col3 = st.columns([1, 4, 2]) # Rozvržení: 1 (okraj), 4 (hlavní tabulka), 2 (top nahozy)
+    
     with col2:
         st.subheader("Celkové pořadí")
+        df_display = df_to_show.copy()
+        df_display['Pořadí'] = df_display['Pořadí'].astype(str)
+        df_display['Body'] = df_display['Body'].astype(str)
         
-        # Aplikace stylu
         styled_df = df_display.style.apply(zebra_style, axis=1)
         styled_df.set_properties(**{'text-align': 'center'})
         styled_df.set_properties(subset=['Jméno'], **{'text-align': 'left'})
@@ -74,15 +78,15 @@ if all_stats:
         )
         
         st.subheader("Grafické srovnání")
-        st.subheader("Grafické srovnání")
-        
-        # Plotly graf - je interaktivní a zvládne i 50+ hráčů
-        fig = px.bar(df_to_show, x='Jméno', y='Body', color='Body', 
-                     color_continuous_scale='Blues')
-        
-        # Tady děláme graf „scroll-ovatelný“
-        fig.update_layout(xaxis={'type': 'category'})
-        
+        fig = px.bar(df_to_show, x='Jméno', y='Body', color='Body', color_continuous_scale='Blues')
         st.plotly_chart(fig, use_container_width=True)
+
+    with col3:
+        st.subheader("Rekordy kol")
+        st.dataframe(
+            df_max_kolo.sort_values(by='Rekord', ascending=False),
+            hide_index=True,
+            use_container_width=True
+        )
 else:
     st.info("Žádná data k zobrazení.")
