@@ -73,14 +73,20 @@ if all_stats:
     with col3:
         st.subheader("Rekordy kol (Top 10)")
         
-        # 1. Seřadíme a vezmeme jen prvních 10 (head(10))
-        df_rekordy = df_max_kolo.sort_values(by='Rekord', ascending=False).head(10).copy()
+        # 1. Vezmeme data a seřadíme podle Rekordu
+        df_rekordy = df_max_kolo.sort_values(by='Rekord', ascending=False).copy()
         
-        # 2. Odstraníme index, aby se nezobrazoval v HTML tabulce
-        df_rekordy = df_rekordy.reset_index(drop=True)
+        # 2. Vypočítáme pořadí (method='min' zajistí 1, 2, 3, 3, 5...)
+        df_rekordy['Pořadí'] = df_rekordy['Rekord'].rank(method='min', ascending=False).astype(int)
         
-        # 3. Převedeme na styl a vycentrujeme
-        # Použijeme to_html(index=False), což je nejspolehlivější způsob, jak se indexu zbavit
-        st.write(df_rekordy.to_html(index=False, justify='center', border=0), unsafe_allow_html=True)
+        # 3. Vybereme jen Top 10 a potřebné sloupce
+        df_top10 = df_rekordy[['Pořadí', 'Jméno', 'Rekord']].head(10)
+        
+        # 4. Převedeme na HTML tabulku a vycentrujeme
+        # justify='center' vycentruje text v buňkách
+        st.write(
+            df_top10.to_html(index=False, justify='center', border=0, classes='table table-striped'), 
+            unsafe_allow_html=True
+        )
 else:
     st.info("Žádná data k zobrazení.")
