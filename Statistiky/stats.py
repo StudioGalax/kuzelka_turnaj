@@ -41,19 +41,24 @@ if all_stats:
     df_final = pd.merge(df_hraci, df_total, on='Jméno', how='left').fillna(0)
     df_final['Body'] = df_final['Body'].astype(int)
     
-    # Příprava tabulky k zobrazení (odstraníme ID)
+    # Příprava tabulky k zobrazení
     df_to_show = df_final.drop(columns=['ID'])
     df_to_show = df_to_show.sort_values(by='Body', ascending=False).reset_index(drop=True)
     df_to_show.insert(0, 'Pořadí', range(1, len(df_to_show) + 1))
 
-    # 4. Výstup v užším sloupci
+    # Převedení na text pro vynucení zarovnání
+    df_display = df_to_show.copy()
+    df_display['Pořadí'] = df_display['Pořadí'].astype(str)
+    df_display['Body'] = df_display['Body'].astype(str)
+
+    # 4. Výstup
     col1, col2, col3 = st.columns([1, 4, 1])
     with col2:
         st.subheader("Celkové pořadí")
         
-        # Aplikace stylu (zebra + zarovnání)
-        styled_df = df_to_show.style.apply(zebra_style, axis=1)
-        styled_df.set_properties(subset=['Pořadí', 'Body'], **{'text-align': 'center'})
+        # Aplikace stylu
+        styled_df = df_display.style.apply(zebra_style, axis=1)
+        styled_df.set_properties(**{'text-align': 'center'})
         styled_df.set_properties(subset=['Jméno'], **{'text-align': 'left'})
         
         st.dataframe(
@@ -61,9 +66,9 @@ if all_stats:
             use_container_width=False,
             hide_index=True,
             column_config={
-                "Pořadí": st.column_config.NumberColumn("Pořadí", width=40),
+                "Pořadí": st.column_config.TextColumn("Pořadí", width=40),
                 "Jméno": st.column_config.TextColumn("Jméno", width=200),
-                "Body": st.column_config.NumberColumn("Body", width=80)
+                "Body": st.column_config.TextColumn("Body", width=80)
             }
         )
         
