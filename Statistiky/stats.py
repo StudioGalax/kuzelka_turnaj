@@ -36,25 +36,19 @@ if os.path.exists(DATA_FOLDER):
 # 3. Zpracování dat
 if all_stats:
     df_results = pd.DataFrame(all_stats)
-    
-    # Celkové body
     df_total = df_results.groupby('Jméno')['Body'].sum().reset_index()
-    
-    # Max nahozy (nejlepší výkon v jednom kole)
     df_max_kolo = df_results.groupby('Jméno')['Max_v_kole'].max().reset_index()
     df_max_kolo.rename(columns={'Max_v_kole': 'Rekord'}, inplace=True)
     
-    # Propojení
     df_final = pd.merge(df_hraci, df_total, on='Jméno', how='left').fillna(0)
     df_final['Body'] = df_final['Body'].astype(int)
     
-    # Příprava tabulky k zobrazení
     df_to_show = df_final.drop(columns=['ID'])
     df_to_show = df_to_show.sort_values(by='Body', ascending=False).reset_index(drop=True)
     df_to_show.insert(0, 'Pořadí', range(1, len(df_to_show) + 1))
 
-    # 4. Výstup (Dashboard)
-    col1, col2, col3 = st.columns([1, 4, 2]) # Rozvržení: 1 (okraj), 4 (hlavní tabulka), 2 (top nahozy)
+    # 4. Výstup
+    col1, col2, col3 = st.columns([1, 4, 2])
     
     with col2:
         st.subheader("Celkové pořadí")
@@ -66,16 +60,11 @@ if all_stats:
         styled_df.set_properties(**{'text-align': 'center'})
         styled_df.set_properties(subset=['Jméno'], **{'text-align': 'left'})
         
-        st.dataframe(
-            styled_df,
-            use_container_width=False,
-            hide_index=True,
-            column_config={
-                "Pořadí": st.column_config.TextColumn("Pořadí", width=40),
-                "Jméno": st.column_config.TextColumn("Jméno", width=200),
-                "Body": st.column_config.TextColumn("Body", width=80)
-            }
-        )
+        st.dataframe(styled_df, use_container_width=False, hide_index=True, column_config={
+            "Pořadí": st.column_config.TextColumn("Pořadí", width=40),
+            "Jméno": st.column_config.TextColumn("Jméno", width=200),
+            "Body": st.column_config.TextColumn("Body", width=80)
+        })
         
         st.subheader("Grafické srovnání")
         fig = px.bar(df_to_show, x='Jméno', y='Body', color='Body', color_continuous_scale='Blues')
@@ -83,24 +72,9 @@ if all_stats:
 
     with col3:
         st.subheader("Rekordy kol")
-        
-        # Příprava dat
         df_rekordy = df_max_kolo.sort_values(by='Rekord', ascending=False).copy()
-        
-        # Převedeme na HTML tabulku se stylem na střed
-        styled_table = df_rekordy.style.set_properties(**{'text-align': 'center'})
-        
-        # Vykreslíme jako st.table
-        st.table(styled_table)
-        
-        st.dataframe(
-            df_rekordy,
-            hide_index=True,
-            use_container_width=True,
-            column_config={
-                "Jméno": st.column_config.TextColumn("Jméno", width="medium"),
-                "Rekord": st.column_config.NumberColumn("Rekord", width="small", format="%d")
-            }
-        )
+        # Vynucení zarovnání na střed pomocí CSS
+        styled_rekordy = df_rekordy.style.set_properties(**{'text-align': 'center'})
+        st.table(styled_rekordy) # st.table respektuje styly
 else:
     st.info("Žádná data k zobrazení.")
