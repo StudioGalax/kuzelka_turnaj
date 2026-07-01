@@ -49,7 +49,11 @@ if all_stats:
     df_final = df_final.sort_values(by='Body', ascending=False).reset_index(drop=True)
     df_final.insert(0, 'Pořadí', range(1, len(df_final) + 1))
 
-    # 4. Výstup - TABULKA
+    # 4. Výstup
+# Vytvoříme 3 sloupce, využijeme jen ten prostřední (ten bude hlavní šířka)
+col1, col2, col3 = st.columns([1, 6, 1]) 
+
+with col2:
     st.subheader("Celkové pořadí")
     st.dataframe(
         df_final,
@@ -57,9 +61,7 @@ if all_stats:
         hide_index=True
     )
     
-    # 5. Výstup - GRAF (tady je ten chybějící kousek!)
     st.subheader("Grafické srovnání")
-    # Použijeme df_final pro graf, ale bez sloupce Pořadí, aby to nepletlo osu X
     st.bar_chart(df_final.set_index('Jméno')['Body'])
 
 else:
