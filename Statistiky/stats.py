@@ -84,8 +84,14 @@ if all_stats:
     with col3:
         st.subheader("Rekordy kol")
         
-        # Seřadíme a připravíme tabulku rekordů
-        df_rekordy = df_max_kolo.sort_values(by='Rekord', ascending=False)
+        # Příprava dat
+        df_rekordy = df_max_kolo.sort_values(by='Rekord', ascending=False).copy()
+        
+        # Převedeme na HTML tabulku se stylem na střed
+        styled_table = df_rekordy.style.set_properties(**{'text-align': 'center'})
+        
+        # Vykreslíme jako st.table
+        st.table(styled_table)
         
         st.dataframe(
             df_rekordy,
