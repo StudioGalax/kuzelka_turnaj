@@ -52,8 +52,18 @@ if all_stats:
             use_container_width=True,
             hide_index=True,
             column_config={
-                "Pořadí": st.column_config.NumberColumn("Pořadí", width="small"),
-                "Body": st.column_config.NumberColumn("Body", width="medium")
+                "Pořadí": st.column_config.NumberColumn(
+                    "Pořadí", 
+                    width="small"
+                ),
+                "Jméno": st.column_config.TextColumn(
+                    "Jméno", 
+                    width="large"
+                ),
+                "Body": st.column_config.NumberColumn(
+                    "Body", 
+                    width="small"
+                )
             }
         )
         
