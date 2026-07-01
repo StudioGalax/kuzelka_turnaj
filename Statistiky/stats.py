@@ -83,10 +83,18 @@ if all_stats:
 
     with col3:
         st.subheader("Rekordy kol")
+        
+        # Seřadíme a připravíme tabulku rekordů
+        df_rekordy = df_max_kolo.sort_values(by='Rekord', ascending=False)
+        
         st.dataframe(
-            df_max_kolo.sort_values(by='Rekord', ascending=False),
+            df_rekordy,
             hide_index=True,
-            use_container_width=True
+            use_container_width=True,
+            column_config={
+                "Jméno": st.column_config.TextColumn("Jméno", width="medium"),
+                "Rekord": st.column_config.NumberColumn("Rekord", width="small", format="%d")
+            }
         )
 else:
     st.info("Žádná data k zobrazení.")
