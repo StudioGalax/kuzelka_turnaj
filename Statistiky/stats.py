@@ -54,7 +54,7 @@ if all_stats:
             column_config={
                 "Pořadí": st.column_config.NumberColumn(
                     "Pořadí", 
-                    width="small"
+                    width=50  # Fixní šířka v pixelech - tohle je absolutní minimum
                 ),
                 "Jméno": st.column_config.TextColumn(
                     "Jméno", 
