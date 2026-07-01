@@ -7,6 +7,9 @@ import os
 DATA_FOLDER = 'Historie_turnaju_json'
 HRACI_FILE = 'Statistiky/hraci.csv'
 
+def zebra_style(row):
+        return ['background-color: #f0f2f6'] * len(row) if row.name % 2 != 0 else ['background-color: white'] * len(row)
+
 st.set_page_config(page_title="Kuželky - Statistiky", layout="wide")
 st.title("📊 Statistiky kuželkářského turnaje")
 
@@ -47,25 +50,17 @@ if all_stats:
     col1, col2, col3 = st.columns([1, 4, 1])
     with col2:
         st.subheader("Celkové pořadí")
+        styled_df = df_to_show.style.apply(zebra_style, axis=1)
         st.dataframe(
-            df_to_show,
-            use_container_width=False,  # Tady je ta změna – vypneme roztahování
-            hide_index=True,
-            column_config={
-                "Pořadí": st.column_config.NumberColumn(
-                    "Pořadí", 
-                    width=40  # Zkusíme 40 pro maximální úsporu místa
-                ),
-                "Jméno": st.column_config.TextColumn(
-                    "Jméno", 
-                    width=200 # Fixní šířka pro jména, aby nebyla zbytečně velká
-                ),
-                "Body": st.column_config.NumberColumn(
-                    "Body", 
-                    width=60  # Fixní šířka pro body
-                )
-            }
-        )
+        styled_df,  # Místo df_to_show vložíme náš obarvený styled_df
+        use_container_width=False,
+        hide_index=True,
+        column_config={
+            "Pořadí": st.column_config.NumberColumn("Pořadí", width=40),
+            "Jméno": st.column_config.TextColumn("Jméno", width=200),
+            "Body": st.column_config.NumberColumn("Body", width=60)
+        }
+    )
         
         st.subheader("Grafické srovnání")
         st.bar_chart(df_to_show.set_index('Jméno')['Body'])
