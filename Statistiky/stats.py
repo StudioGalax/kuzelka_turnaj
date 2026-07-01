@@ -41,15 +41,20 @@ if all_stats:
     df_results = pd.DataFrame(all_stats)
     df_total = df_results.groupby('Jméno')['Body'].sum().reset_index()
     
-    # Propojení s tabulkou hráčů
+    # Propojení
     df_final = pd.merge(df_hraci, df_total, on='Jméno', how='left').fillna(0)
     df_final['Body'] = df_final['Body'].astype(int)
+    
+    # SEŘAZENÍ A PŘIDÁNÍ POŘADÍ:
+    df_final = df_final.sort_values(by='Body', ascending=False).reset_index(drop=True)
+    df_final.insert(0, 'Pořadí', range(1, len(df_final) + 1)) # Vloží nový sloupec na začátek
 
     # 4. Výstup
     st.subheader("Celkové pořadí")
-    st.table(df_final.sort_values(by='Body', ascending=False).reset_index(drop=True))
-    
-    st.subheader("Grafické srovnání")
-    st.bar_chart(df_final.set_index('Jméno')['Body'])
+    st.dataframe(
+        df_final,
+        use_container_width=True,
+        hide_index=True # Tím schováme to automatické číslování Streamlitu
+    )
 else:
     st.info("Žádná data k zobrazení.")
