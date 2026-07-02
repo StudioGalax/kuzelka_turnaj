@@ -20,7 +20,7 @@ with st.sidebar:
     st.markdown("📧 [studiogalax.cz@gmail.com](mailto:studiogalax.cz@gmail.com)")
     st.divider()
         
-    st.markdown("### 📱 Odkaz na turnaj")
+    st.markdown("### 📱 Odkaz na statistiky")
     st.code("https://bit.ly/3SGN1ay", language=None)
         
     try: 
