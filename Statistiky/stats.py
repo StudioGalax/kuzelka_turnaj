@@ -8,21 +8,15 @@ import plotly.express as px
 DATA_FOLDER = 'Historie_turnaju_json'
 HRACI_FILE = 'Statistiky/hraci.csv'
 
-def zebra_style(row):
-    return ['background-color: #f0f2f6'] * len(row) if row.name % 2 != 0 else ['background-color: white'] * len(row)
-
 st.set_page_config(page_title="Kuželky - Statistiky", layout="wide")
 st.title("📊 Statistiky kuželkářského turnaje")
 
-# 1. Načtení seznamu hráčů
+# 1. Načtení dat (zůstává stejné)
 if not os.path.exists(HRACI_FILE):
     st.error(f"Chyba: Soubor {HRACI_FILE} nebyl nalezen!")
     st.stop()
 
-df_hraci = pd.read_csv(HRACI_FILE)
-df_hraci.columns = [c.strip() for c in df_hraci.columns]
-
-# 2. Načtení JSON souborů
+# 2. Načtení JSON a zpracování
 all_stats = []
 if os.path.exists(DATA_FOLDER):
     json_files = [f for f in os.listdir(DATA_FOLDER) if f.endswith('.json')]
@@ -31,13 +25,12 @@ if os.path.exists(DATA_FOLDER):
             data = json.load(f)
             for team in data.get('teams', {}).values():
                 for player_name, scores in team.items():
-                    all_stats.append({"Jméno": player_name.strip(), "Body": sum(scores), "Max_v_kole": max(scores)})
+                    all_stats.append({"Jméno": player_name.strip(), "Body": sum(scores)})
 
-# 3. Zpracování dat
+# 3. Zpracování dat (s novou logikou formy)
 if all_stats:
     df_results = pd.DataFrame(all_stats)
     
-    # Funkce pro výpočet formy
     def get_forma(data):
         if len(data) < 3: return "➡️" 
         posledni = data[-1]
@@ -47,67 +40,36 @@ if all_stats:
         if rozdil <= -10: return '<span style="color:red">⬇️</span>'
         return '<span style="color:blue">➡️</span>'
 
-    # Seskupení dat pro každého hráče
     hraci_data = []
     for jmeno, group in df_results.groupby('Jméno'):
         body_seznam = group['Body'].tolist()
-        prumer = round(sum(body_seznam) / len(body_seznam), 1)
-        forma = get_forma(body_seznam)
-        
         hraci_data.append({
             "Jméno": jmeno,
             "Celkem": sum(body_seznam),
-            "Počet": len(body_seznam),
-            "Průměr": prumer,
-            "Forma": forma
+            "Průměr": round(sum(body_seznam) / len(body_seznam), 1),
+            "Forma": get_forma(body_seznam)
         })
     
     df_final = pd.DataFrame(hraci_data)
     
-    # Příprava pro zobrazení (seřazení)
-    df_celkem = df_final.sort_values(by='Celkem', ascending=False).reset_index(drop=True)
-    df_prumer = df_final.sort_values(by='Průměr', ascending=False).reset_index(drop=True)
-
-    # 4. Výstup
-    col1, col2, col3 = st.columns([1, 4, 2])
+    # 4. Výstup v záložkách
+    tab1, tab2, tab3 = st.tabs(["Celkové pořadí", "Pořadí dle průměru", "Archiv turnajů"])
     
-    with col2:
+    with tab1:
         st.subheader("Celkové pořadí")
-        df_display = df_to_show.copy()
-        df_display['Pořadí'] = df_display['Pořadí'].astype(str)
-        df_display['Body'] = df_display['Body'].astype(str)
-        
-        styled_df = df_display.style.apply(zebra_style, axis=1)
-        styled_df.set_properties(**{'text-align': 'center'})
-        styled_df.set_properties(subset=['Jméno'], **{'text-align': 'left'})
-        
-        st.dataframe(styled_df, use_container_width=False, hide_index=True, column_config={
-            "Pořadí": st.column_config.TextColumn("Pořadí", width=40),
-            "Jméno": st.column_config.TextColumn("Jméno", width=200),
-            "Body": st.column_config.TextColumn("Body", width=80)
-        })
-        
-        st.subheader("Grafické srovnání")
-        fig = px.bar(df_to_show, x='Jméno', y='Body', color='Body', color_continuous_scale='Blues')
-        st.plotly_chart(fig, use_container_width=True)
+        df_celkem = df_final.sort_values(by='Celkem', ascending=False)
+        # Používáme to_html pro zobrazení barevných šipek
+        st.write(df_celkem.to_html(index=False, escape=False, justify='center'), unsafe_allow_html=True)
 
-    with col3:
-        st.subheader("Rekordy kol (Top 10)")
+    with tab2:
+        st.subheader("Pořadí dle průměru")
+        df_prumer = df_final.sort_values(by='Průměr', ascending=False)
+        st.write(df_prumer.to_html(index=False, escape=False, justify='center'), unsafe_allow_html=True)
         
-        # 1. Vezmeme data a seřadíme podle Rekordu
-        df_rekordy = df_max_kolo.sort_values(by='Rekord', ascending=False).copy()
-        
-        # 2. Vypočítáme pořadí (method='min' zajistí 1, 2, 3, 3, 5...)
-        df_rekordy['Pořadí'] = df_rekordy['Rekord'].rank(method='min', ascending=False).astype(int)
-        
-        # 3. Vybereme jen Top 10 a potřebné sloupce
-        df_top10 = df_rekordy[['Pořadí', 'Jméno', 'Rekord']].head(10)
-        
-        # 4. Převedeme na HTML tabulku a vycentrujeme
-        # justify='center' vycentruje text v buňkách
-        st.write(
-            df_top10.to_html(index=False, justify='center', border=0, classes='table table-striped'), 
-            unsafe_allow_html=True
-        )
+    with tab3:
+        st.subheader("Archiv turnajů")
+        for file_name in sorted(os.listdir(DATA_FOLDER), reverse=True):
+            if file_name.endswith('.json'):
+                st.text(f"Turnaj: {file_name.replace('.json', '')}")
 else:
     st.info("Žádná data k zobrazení.")
