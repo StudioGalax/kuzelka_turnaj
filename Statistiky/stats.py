@@ -7,19 +7,25 @@ st.set_page_config(page_title="Kuželky - Statistiky", layout="wide")
 
 # --- FUNKCE PRO ZOBRAZENÍ TABULKY ---
 def display_table(df, sort_by, columns):
-    df = df.sort_values(by=sort_by, ascending=False).reset_index(drop=True)
-    df.insert(0, 'Pořadí', range(1, len(df) + 1))
+    # 1. Pořadí se shodou: method='min' zajistí, že při shodě bodů 
+    # mají oba stejné (nižší) pořadí a další vynechá
+    df = df.sort_values(by=sort_by, ascending=False).copy()
+    df['Pořadí'] = df[sort_by].rank(method='min', ascending=False).astype(int)
     
-    df_show = df[columns].copy()
+    # Přesuneme Pořadí na začátek
+    cols = ['Pořadí'] + [c for c in df.columns if c not in ['Pořadí']]
+    df = df[cols]
     
-    # Převedeme na text pro jednotné zarovnání
+    df_show = df[columns + ['Pořadí']].copy()
+    
+    # Převedeme na text pro jednotné zarovnání a zúžení
     for col in df_show.columns:
         if col == 'Celkem':
             df_show[col] = df_show[col].apply(lambda x: f"{int(x)}")
         elif col == 'Průměr na hod':
             df_show[col] = df_show[col].apply(lambda x: f"{x:.2f}")
 
-    # Definice úzkých sloupců
+    # 2. Definice úzkých sloupců
     col_config = {
         "Pořadí": st.column_config.TextColumn("Pořadí", width="small"),
         "Jméno": st.column_config.TextColumn("Jméno", width="medium"),
@@ -29,7 +35,8 @@ def display_table(df, sort_by, columns):
         "Forma": st.column_config.TextColumn("Forma", width="small")
     }
     
-    # Vypneme use_container_width, aby se tabulka nenatahovala
+    # 3. Zobrazení se zebrováním
+    # Streamlit dataframe má zebrování (alternating row colors) automaticky zapnuté
     st.dataframe(
         df_show, 
         hide_index=True, 
