@@ -34,12 +34,19 @@ if all_stats:
         return '<span style="color:blue">➡️</span>'
 
     def process_stats(group):
-        idx_max = group['Body'].idxmax()
+        # group['Body'] obsahuje seznam náhozů (těch 50, 50, 60, 50...)
+        body = group['Body'].tolist()
+        
+        # Najdeme index nejvyššího náhozu (idxmax vrací pozici v seznamu)
+        # Protože indexy jsou 0, 1, 2, 3, přičteme 1, abychom měli 1, 2, 3, 4
+        idx_max = pd.Series(body).idxmax()
+        kolo_cislo = idx_max + 1 
+        
         return pd.Series({
-            "Celkem": group['Body'].sum(),
-            "Průměr": group['Body'].mean(),
-            "Max v kole": f"{group.loc[idx_max, 'Body']} ({group.loc[idx_max, 'Kolo']}. kolo)",
-            "Forma": get_forma(group['Body'].tolist())
+            "Celkem": sum(body),
+            "Průměr": sum(body) / len(body),
+            "Max v kole": f"{max(body)} ({kolo_cislo}. kolo)",
+            "Forma": get_forma(body)
         })
 
     df_final = df_raw.groupby('Jméno').apply(process_stats).reset_index()
