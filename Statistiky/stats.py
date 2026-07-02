@@ -5,6 +5,18 @@ import os
 
 st.set_page_config(page_title="Kuželky - Statistiky", layout="wide")
 
+st.markdown("""
+<style>
+    /* Vynucení zebrování pro st.dataframe */
+    [data-testid="stDataFrame"] table tbody tr:nth-of-type(odd) {
+        background-color: #f9f9f9 !important;
+    }
+    [data-testid="stDataFrame"] table tbody tr:nth-of-type(even) {
+        background-color: #ffffff !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # --- FUNKCE PRO ZOBRAZENÍ TABULKY ---
 def display_table(df, sort_by, columns):
     # 1. Výpočet pořadí se shodou (metoda 'min')
