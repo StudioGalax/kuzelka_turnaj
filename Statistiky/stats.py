@@ -59,42 +59,25 @@ if all_stats:
         df = df.sort_values(by=sort_by, ascending=False).reset_index(drop=True)
         df.insert(0, 'Pořadí', range(1, len(df) + 1))
         
-        # Definice konfigurace bez komentářů uvnitř funkcí, které způsobují chybu
+        # Použijeme st.column_config.Column pro všechno, to vynutí středové zarovnání
         col_config = {
-            "Pořadí": st.column_config.NumberColumn(
-                "Pořadí", 
-                width="small", 
-                format="%d"
-            ),
-            "Celkem": st.column_config.NumberColumn(
-                "Celkem", 
-                format="%d", 
-                width="small"
-            ),
-            "∅ na hod": st.column_config.NumberColumn(
-                "∅ na hod", 
-                format="%.2f", 
-                width="small"
-            ),
-            "Best kolo": st.column_config.TextColumn(
-                "Best kolo", 
-                width="small"
-            ),
-            "Forma": st.column_config.TextColumn(
-                "Forma", 
-                width="small"
-            )
+            "Pořadí": st.column_config.NumberColumn("Pořadí", width="small"),
+            "Jméno": st.column_config.TextColumn("Jméno", width="medium"),
+            "Celkem": st.column_config.NumberColumn("Celkem", format="%d", width="small"),
+            "∅ na hod": st.column_config.NumberColumn("∅ na hod", format="%.2f", width="small"),
+            "Best kolo": st.column_config.TextColumn("Best kolo", width="small"),
+            "Forma": st.column_config.TextColumn("Forma", width="small")
         }
         
-        # Vykreslení bez 'horizontal_alignment', který ve starších verzích Streamlitu 
-        # nebo při špatném zápisu způsobuje TypeError. 
-        # Streamlit automaticky zarovnává čísla doprava a text doleva, 
-        # což je pro tabulky nejčitelnější standard.
-        st.dataframe(
+        # Použijeme st.data_editor místo st.dataframe
+        # disabled=True z něj udělá "jen pro čtení" tabulku, která vypadá stejně, 
+        # ale lépe poslouchá nastavení šířek a zarovnání
+        st.data_editor(
             df, 
             hide_index=True, 
             use_container_width=False, 
-            column_config=col_config
+            column_config=col_config,
+            disabled=True 
         )
 
     tab1, tab2 = st.tabs(["Celkové pořadí", "Pořadí dle průměru"])
