@@ -5,38 +5,35 @@ import os
 
 # --- FUNKCE PRO ZOBRAZENÍ TABULKY S "ZEBROVÁNÍM" ---
 def display_table(df, sort_by, columns):
+    # 1. Výpočet pořadí se shodou
     df = df.sort_values(by=sort_by, ascending=False).copy()
     df['Pořadí'] = df[sort_by].rank(method='min', ascending=False).astype(int)
     
-    # Sloupec Pořadí bude první
+    # 2. Sestavení pořadí sloupců
     cols_to_show = ['Pořadí'] + columns
     df_show = df[cols_to_show].copy()
     
-    # Formátování (převod na text)
-    if 'Celkem' in df_show.columns:
-        df_show['Celkem'] = df_show['Celkem'].astype(int)
-    if 'Průměr na hod' in df_show.columns:
-        df_show['Průměr na hod'] = df_show['Průměr na hod'].apply(lambda x: f"{x:.2f}")
+    # 3. Formátování (převod na text pro jistotu)
+    for col in df_show.columns:
+        if col == 'Celkem':
+            df_show[col] = df_show[col].astype(int)
+        elif col == 'Průměr na hod':
+            df_show[col] = df_show[col].apply(lambda x: f"{x:.2f}")
 
-    # 1. Definice konfigurace se zarovnáním "left"
-    col_config = {col: st.column_config.Column(col, horizontal_alignment="left") 
-                  for col in df_show.columns}
-    
-    # 2. Vynucení zebry přes styler
-    def style_zebra(data):
-        return pd.DataFrame([['background-color: #f2f2f2'] * len(data.columns)] * len(data), 
-                            index=data.index, columns=data.columns)
-    
-    # Zebra se aplikuje pouze na sudé řádky
-    styler = df_show.style.apply(lambda x: ['background-color: #f2f2f2' if i % 2 != 0 else '' 
-                                            for i in range(len(x))], axis=1)
+    # 4. ZEBRA přes styler
+    # Obarví sudé řádky šedou barvou
+    def apply_zebra(df):
+        return pd.DataFrame([['background-color: #f2f2f2'] * len(df.columns)] * len(df), 
+                            index=df.index, columns=df.columns)
 
-    # 3. Vykreslení
+    # Aplikujeme barvu na sudé řádky
+    styler = df_show.style.apply(lambda x: ['background-color: #f2f2f2' if x.name % 2 != 0 else '' for _ in x], axis=1)
+
+    # 5. Vykreslení - BEZ column_config, který způsobuje chyby
     st.dataframe(
         styler, 
         hide_index=True, 
         use_container_width=True,
-        column_config=col_config,
         height=400
     )
 
