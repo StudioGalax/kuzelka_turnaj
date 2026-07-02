@@ -58,18 +58,23 @@ if all_stats:
     def display_table(df, sort_by):
         df = df.sort_values(by=sort_by, ascending=False).reset_index(drop=True)
         df.insert(0, 'Pořadí', range(1, len(df) + 1))
-        if 'Průměr na hod' in df.columns:
-            df['Průměr na hod'] = df['Průměr na hod'].map('{:.2f}'.format)
-            
-        # Barevné stylování šipek
-        def color_forma(row):
-            color = 'blue'
-            if row['Forma'] == '▲': color = 'green'
-            elif row['Forma'] == '▼': color = 'red'
-            return [f'color: {color}; font-weight: bold' if col == 'Forma' else '' for col in row.index]
-
-        # Vykreslení
-        st.table(df.style.apply(color_forma, axis=1))
+        
+        # Konfigurace vzhledu sloupců pro lepší zarovnání a šířku
+        col_config = {
+            "Pořadí": st.column_config.NumberColumn("Pořadí", width="small"),
+            "Jméno": st.column_config.TextColumn("Jméno", width="medium"),
+            "Celkem": st.column_config.NumberColumn("Celkem", format="%d", width="small"),
+            "Průměr na hod": st.column_config.NumberColumn("Průměr na hod", format="%.2f", width="small"),
+            "Best kolo": st.column_config.TextColumn("Best kolo", width="small"),
+            "Forma": st.column_config.TextColumn("Forma", width="small")
+        }
+        
+        st.dataframe(
+            df, 
+            hide_index=True, 
+            use_container_width=True, 
+            column_config=col_config
+        )
 
     tab1, tab2 = st.tabs(["Celkové pořadí", "Pořadí dle průměru"])
     with tab1:
