@@ -14,20 +14,26 @@ if os.path.exists(DATA_FOLDER):
         if file_name.endswith('.json'):
             with open(os.path.join(DATA_FOLDER, file_name), 'r', encoding='utf-8') as f:
                 data = json.load(f)
+                limit_hodu = data.get("limit_hodu", 15)  # Získání limitu hodů
                 for team in data.get('teams', {}).values():
                     for p_name, scores in team.items():
-                        all_stats.append({"Jméno": p_name.strip(), "Body": scores})
+                        all_stats.append({
+                            "Jméno": p_name.strip(), 
+                            "Body": scores, 
+                            "Limit": limit_hodu
+                        })
 
 if all_stats:
     df_raw = pd.DataFrame(all_stats)
     
     # 2. LOGIKA STATISTIK
     def process_player(group):
-        # Spojíme všechny náhozy všech turnajů do jednoho seznamu
+        # Spojíme všechny náhozy všech turnajů
         all_body = [s for sublist in group['Body'] for s in sublist]
+        # Spočítáme celkový počet hodů (součet limitů všech kol)
+        total_hody = sum(group['Limit'])
         
-        # Logika pro "Best kolo" (1-4) podle nejvyššího průměru v daném kole
-        # Vytvoříme pomocný dataframe: řádek = jeden nához, sloupec = číslo kola (1-4)
+        # Logika pro "Nejoblíbenější kolo" (1-4) podle průměru na jeden hod
         nazozy = pd.DataFrame({'kolo': [(i % 4) + 1 for i in range(len(all_body))], 'hod': all_body})
         avg_per_kolo = nazozy.groupby('kolo')['hod'].mean()
         best_kolo = avg_per_kolo.idxmax()
@@ -41,7 +47,7 @@ if all_stats:
             
         return pd.Series({
             "Celkem": sum(all_body),
-            "Průměr": sum(all_body) / len(all_body),
+            "Průměr na hod": sum(all_body) / total_hody,
             "Best kolo": f"{best_kolo}. kolo",
             "Forma": forma
         })
@@ -53,17 +59,17 @@ if all_stats:
         df = df.sort_values(by=sort_by, ascending=False).reset_index(drop=True)
         df.insert(0, 'Pořadí', range(1, len(df) + 1))
         
-        # Bezpečné formátování průměru (pouze pokud sloupec existuje)
-        if 'Průměr' in df.columns:
-            df['Průměr'] = df['Průměr'].map('{:.1f}'.format)
+        # Formátování (pouze pokud sloupce existují)
+        if 'Průměr na hod' in df.columns:
+            df['Průměr na hod'] = df['Průměr na hod'].map('{:.2f}'.format)
             
-        # hide_index=True odstraní ten sloupec 0, 1, 2...
+        # hide_index=True skryje ty 0, 1, 2...
         st.dataframe(df, hide_index=True, use_container_width=True)
 
-    tab1, tab2 = st.tabs(["Celkové pořadí", "Pořadí dle průměru"])
+    tab1, tab2 = st.tabs(["Celkové pořadí", "Pořadí dle průměru na hod"])
     with tab1:
         display_table(df_final[['Jméno', 'Celkem', 'Best kolo', 'Forma']], 'Celkem')
     with tab2:
-        display_table(df_final[['Jméno', 'Průměr', 'Best kolo', 'Forma']], 'Průměr')
+        display_table(df_final[['Jméno', 'Průměr na hod', 'Best kolo', 'Forma']], 'Průměr na hod')
 else:
     st.info("Žádná data k zobrazení.")
