@@ -4,27 +4,27 @@ import json
 import os
 
 # --- SIDEBAR - KONTAKT ---
-with st.sidebar:
-    # Cesta k logu
-    try: st.image(os.path.join(DATA_FOLDER, "Studio_Galax_1920x1080.png"), use_container_width=True)
-    except: st.warning("Logo nenalezeno")
-    
-    st.markdown("### Studio Galax")
-    st.markdown("---")
-    st.markdown("### 🛠 Vibe Coder")
-    st.write("**Jan Bugdol**")
-    st.markdown("📧 [studiogalax.cz@gmail.com](mailto:studiogalax.cz@gmail.com)")
-    
-    st.divider()
-    
-    st.markdown("### 📱 Odkaz na turnaj")
-    st.caption("Naskenuj QR nebo zkopíruj odkaz:")
-    # Zde vypiš svůj odkaz - je to přehledné a funkční
-    st.code("https://bit.ly/3SGN1ay", language=None)
-    
-    # Cesta ke QR kódu
-    try: st.image(os.path.join(DATA_FOLDER, "turnaj_qr.png"), width=150)
-    except: st.info("QR kód nenalezen")
+# SIDEBAR - zde uprav cesty takto:
+    with st.sidebar:
+        # Změna: přidání os.path.join(DATA_FOLDER, ...)
+        try: 
+            st.image(os.path.join(DATA_FOLDER, "Studio_Galax_1920x1080.png"), use_container_width=True)
+        except Exception as e: 
+            st.warning(f"Logo nenalezeno: {e}")
+        
+        st.markdown("### Studio Galax")
+        st.markdown("🛠 **Vibe Coder: Jan Bugdol**")
+        st.markdown("📧 [studiogalax.cz@gmail.com](mailto:studiogalax.cz@gmail.com)")
+        st.divider()
+        
+        st.markdown("### 📱 Odkaz na turnaj")
+        st.code("https://bit.ly/3SGN1ay", language=None)
+        
+        # Změna: přidání os.path.join(DATA_FOLDER, ...)
+        try: 
+            st.image(os.path.join(DATA_FOLDER, "statistiky_qrcode.png"), width=150)
+        except Exception as e: 
+            st.info(f"QR kód nenalezen: {e}")
 
 # --- FUNKCE PRO ZOBRAZENÍ TABULKY S "ZEBROVÁNÍM" ---
 def display_table(df, sort_by, columns):
