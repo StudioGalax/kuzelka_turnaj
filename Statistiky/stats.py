@@ -76,19 +76,31 @@ def display_top_10_hody(df_raw):
         st.markdown(html, unsafe_allow_html=True)
 
 def display_single_tournament(df_raw):
-    # Vybereme seznam turnajů (názvy souborů)
-    turnaje = sorted(df_raw['Turnaj'].unique())
-    vybrany_turnaj = st.selectbox("Vyber turnaj k zobrazení:", turnaje)
+    # Původní seznam turnajů (názvy souborů)
+    turnaje_raw = sorted(df_raw['Turnaj'].unique(), reverse=True)
     
-    # Vyfiltrujeme data pro vybraný turnaj
+    # Ořežeme názvy pro selectbox: vezmeme jen datum (předpokládáme formát turnaj_kuzelka_YYYY-MM-DD.json)
+    # Tímto odstraníme příponu .json a vše před datem
+    turnaje_labels = [t.replace('turnaj_kuzelka_', '').replace('.json', '') for t in turnaje_raw]
+    
+    # Vytvoříme mapování: Datum -> Původní název souboru
+    tournament_map = dict(zip(turnaje_labels, turnaje_raw))
+    
+    # Selectbox zobrazí jen datumy
+    vybrane_datum = st.selectbox("Vyber datum turnaje:", turnaje_labels)
+    
+    # Získáme zpět původní název souboru pro filtrování dat
+    vybrany_turnaj = tournament_map[vybrane_datum]
+    
+    # Vyfiltrujeme data
     df_turnaj = df_raw[df_raw['Turnaj'] == vybrany_turnaj].copy()
     
-    # Převedeme hody na čitelnou tabulku (Jméno, Body)
+    # Zbytek funkce zůstává stejný...
     df_display = df_turnaj[['Jméno', 'Body']].sort_values(by='Body', ascending=False)
     df_display['Pořadí'] = df_display['Body'].rank(method='min', ascending=False).astype(int)
     df_display = df_display[['Pořadí', 'Jméno', 'Body']]
     
-    # CSS a HTML tabulka (stejná jako u tvých ostatních tabulek)
+    # ... zbytek HTML tabulky jako předtím
     html = """
     <style>
         .custom-table { width: 100%; border-collapse: collapse; font-family: sans-serif; }
