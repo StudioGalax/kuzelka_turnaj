@@ -39,15 +39,23 @@ def display_table(df, sort_by, columns):
 
 # --- FUNKCE PRO TOP 10 NÁHOZŮ ---
 def display_top_10_hody(df_raw):
+    # Rozbalíme hody
     all_throws = []
     for _, row in df_raw.iterrows():
         for throw in row['Surove_Body']:
             all_throws.append({"Jméno": row['Jméno'], "Body": throw})
     
     df_throws = pd.DataFrame(all_throws)
-    top_10 = df_throws.sort_values(by='Body', ascending=False).head(10).reset_index(drop=True)
-    top_10['Pořadí'] = range(1, len(top_10) + 1)
     
+    # 1. Seřadíme a vytvoříme pořadí (method='min' řeší shody)
+    df_throws = df_throws.sort_values(by='Body', ascending=False).copy()
+    df_throws['Pořadí'] = df_throws['Body'].rank(method='min', ascending=False).astype(int)
+    
+    # 2. Vezmeme top 10 (zde pozor: pokud má 10. a 11. místo stejný počet bodů, 
+    # metoda 'min' nám jich může vrátit více než 10, proto uděláme .head(10))
+    top_10 = df_throws.head(10).reset_index(drop=True)
+    
+    # HTML tabulka
     html = """
     <style>
         .custom-table { width: 100%; border-collapse: collapse; font-family: sans-serif; }
@@ -66,7 +74,6 @@ def display_top_10_hody(df_raw):
     """
     with st.container(height=400):
         st.markdown(html, unsafe_allow_html=True)
-
 # --- HLAVNÍ LOGIKA ---
 DATA_FOLDER = 'Historie_turnaju_json'
 all_stats = []
