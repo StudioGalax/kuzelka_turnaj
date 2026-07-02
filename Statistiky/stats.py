@@ -86,17 +86,29 @@ def display_single_tournament(df_raw):
     turnaje_raw = sorted(df_raw['Turnaj'].unique(), reverse=True)
     turnaje_labels = [t.replace('turnaj_kuzelka_', '').replace('.json', '') for t in turnaje_raw]
     tournament_map = dict(zip(turnaje_labels, turnaje_raw))
+    
     vybrane_datum = st.selectbox("Vyber datum turnaje:", turnaje_labels)
     
     df_turnaj = df_raw[df_raw['Turnaj'] == tournament_map[vybrane_datum]].copy()
     df_display = df_turnaj[['Jméno', 'Body']].sort_values(by='Body', ascending=False)
     df_display['Pořadí'] = df_display['Body'].rank(method='min', ascending=False).astype(int)
+    df_display = df_display[['Pořadí', 'Jméno', 'Body']]
     
-    html = """<style>.custom-table { width: 100%; border-collapse: collapse; font-family: sans-serif; } .custom-table th, .custom-table td { padding: 10px; border-bottom: 1px solid #ddd; text-align: center; } .custom-table td:nth-child(2) { text-align: left; } .custom-table th { background-color: #f9f9f9; } .custom-table tr:nth-of-type(even) { background-color: #f2f2f2; }</style>
-    <table class="custom-table"><thead><tr><th>Pořadí</th><th>Jméno</th><th>Celkem bodů</th></tr></thead>
-    <tbody>""" + "".join([f"<tr><td>{row['Pořadí']}</td><td>{row['Jméno']}</td><td>{row['Body']}</td></tr>" for _, row in df_display.iterrows()]) + """</tbody></table>"""
-    with st.container(height=400):
-        st.markdown(html, unsafe_allow_html=True)
+    html = """
+    <style>
+        .custom-table { width: 100%; border-collapse: collapse; font-family: sans-serif; }
+        .custom-table th, .custom-table td { padding: 10px; border-bottom: 1px solid #ddd; text-align: center; }
+        .custom-table td:nth-child(2) { text-align: left; }
+        .custom-table th { background-color: #f9f9f9; }
+        .custom-table tr:nth-of-type(even) { background-color: #f2f2f2; }
+    </style>
+    <table class="custom-table">
+        <thead><tr><th>Pořadí</th><th>Jméno</th><th>Celkem bodů</th></tr></thead>
+        <tbody>""" + "".join([f"<tr><td>{row['Pořadí']}</td><td>{row['Jméno']}</td><td>{row['Body']}</td></tr>" for _, row in df_display.iterrows()]) + """</tbody>
+    </table>
+    """
+    # Použijeme stejný "těžký kalibr" komponentu
+    components.html(html, height=400, scrolling=True)
 
 # --- HLAVNÍ LOGIKA ---
 all_stats = []
