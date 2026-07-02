@@ -3,38 +3,30 @@ import pandas as pd
 import json
 import os
 
-st.set_page_config(page_title="Kuželky - Statistiky", layout="wide")
-
-st.markdown("""
-<style>
-    /* Vynucení zebrování pro st.dataframe */
-    [data-testid="stDataFrame"] table tbody tr:nth-of-type(odd) {
-        background-color: #f9f9f9 !important;
-    }
-    [data-testid="stDataFrame"] table tbody tr:nth-of-type(even) {
-        background-color: #ffffff !important;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# --- FUNKCE PRO ZOBRAZENÍ TABULKY ---
+# --- FUNKCE PRO ZOBRAZENÍ TABULKY S "ZEBROVÁNÍM" ---
 def display_table(df, sort_by, columns):
-    # 1. Výpočet pořadí se shodou (metoda 'min')
+    # 1. Pořadí se shodou
     df = df.sort_values(by=sort_by, ascending=False).copy()
     df['Pořadí'] = df[sort_by].rank(method='min', ascending=False).astype(int)
     
-    # 2. Sestavení pořadí sloupců (Pořadí bude první)
+    # 2. Sestavení sloupců
     cols_to_show = ['Pořadí'] + columns
     df_show = df[cols_to_show].copy()
     
-    # Formátování hodnot
+    # 3. Formátování hodnot pro sjednocení typu (vše jako text)
     for col in df_show.columns:
         if col == 'Celkem':
             df_show[col] = df_show[col].apply(lambda x: f"{int(x)}")
         elif col == 'Průměr na hod':
             df_show[col] = df_show[col].apply(lambda x: f"{x:.2f}")
 
-    # 3. Konfigurace sloupců
+    # 4. Použití Pandas Styleru pro zebrování (vynucené střídání barev)
+    def style_zebra(row):
+        return ['background-color: #f9f9f9' if row.name % 2 != 0 else '' for _ in row]
+
+    styled_df = df_show.style.apply(style_zebra, axis=1)
+
+    # 5. Konfigurace sloupců
     col_config = {
         "Pořadí": st.column_config.TextColumn("Pořadí", width="small"),
         "Jméno": st.column_config.TextColumn("Jméno", width="medium"),
@@ -44,9 +36,9 @@ def display_table(df, sort_by, columns):
         "Forma": st.column_config.TextColumn("Forma", width="small")
     }
     
-    # 4. Vykreslení
+    # 6. Vykreslení (st.dataframe nyní bere styled_df)
     st.dataframe(
-        df_show, 
+        styled_df, 
         hide_index=True, 
         use_container_width=False, 
         column_config=col_config
