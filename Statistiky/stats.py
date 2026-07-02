@@ -61,14 +61,35 @@ if all_stats:
         
         # 1. Konfigurace sloupců s úpravou názvů a zarovnáním na střed
         col_config = {
-            "Pořadí": st.column_config.NumberColumn("Pořadí", width="small"),
-            "Jméno": st.column_config.TextColumn("Jméno", width="medium"),
-            "Celkem": st.column_config.NumberColumn("Celkem", format="%d", width="small"),
-            # Symbol ∅ místo slova Průměr
-            "Průměr na hod": st.column_config.NumberColumn("∅ na hod", format="%.2f", width="small"),
-            "Best kolo": st.column_config.TextColumn("Best kolo", width="small"),
-            "Forma": st.column_config.TextColumn("Forma", width="small")
-        }
+        "Pořadí": st.column_config.NumberColumn(
+            "Pořadí", 
+            width="small", 
+            help="Pořadí hráče",
+            horizontal_alignment="center" # Tady se děje to kouzlo
+        ),
+        "Celkem": st.column_config.NumberColumn(
+            "Celkem", 
+            format="%d", 
+            width="small", 
+            horizontal_alignment="center"
+        ),
+        "∅ na hod": st.column_config.NumberColumn(
+            "∅ na hod", 
+            format="%.2f", 
+            width="small", 
+            horizontal_alignment="center"
+        ),
+        "Best kolo": st.column_config.TextColumn(
+            "Best kolo", 
+            width="small", 
+            horizontal_alignment="center"
+        ),
+        "Forma": st.column_config.TextColumn(
+            "Forma", 
+            width="small", 
+            horizontal_alignment="center"
+        )
+    }
         
         # 2. Vykreslení tabulky
         st.dataframe(
