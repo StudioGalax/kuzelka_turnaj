@@ -59,25 +59,29 @@ if all_stats:
         df = df.sort_values(by=sort_by, ascending=False).reset_index(drop=True)
         df.insert(0, 'Pořadí', range(1, len(df) + 1))
         
-        # Použijeme st.column_config.Column pro všechno, to vynutí středové zarovnání
+        # PŘEVOD NA TEXT: Převedeme všechna čísla na formátovaný text
+        # Tím zamezíme automatickému zarovnání doprava
+        df['Pořadí'] = df['Pořadí'].astype(str)
+        df['Celkem'] = df['Celkem'].apply(lambda x: f"{x:.0f}")
+        if 'Průměr na hod' in df.columns:
+            df['∅ na hod'] = df['Průměr na hod'].apply(lambda x: f"{x:.2f}")
+            df = df.drop(columns=['Průměr na hod'])
+        
+        # Nyní vše definujeme jako TextColumn, který lze vycentrovat
         col_config = {
-            "Pořadí": st.column_config.NumberColumn("Pořadí", width="small"),
+            "Pořadí": st.column_config.TextColumn("Pořadí", width="small"),
             "Jméno": st.column_config.TextColumn("Jméno", width="medium"),
-            "Celkem": st.column_config.NumberColumn("Celkem", format="%d", width="small"),
-            "∅ na hod": st.column_config.NumberColumn("∅ na hod", format="%.2f", width="small"),
+            "Celkem": st.column_config.TextColumn("Celkem", width="small"),
+            "∅ na hod": st.column_config.TextColumn("∅ na hod", width="small"),
             "Best kolo": st.column_config.TextColumn("Best kolo", width="small"),
             "Forma": st.column_config.TextColumn("Forma", width="small")
         }
         
-        # Použijeme st.data_editor místo st.dataframe
-        # disabled=True z něj udělá "jen pro čtení" tabulku, která vypadá stejně, 
-        # ale lépe poslouchá nastavení šířek a zarovnání
-        st.data_editor(
+        st.dataframe(
             df, 
             hide_index=True, 
             use_container_width=False, 
-            column_config=col_config,
-            disabled=True 
+            column_config=col_config
         )
 
     tab1, tab2 = st.tabs(["Celkové pořadí", "Pořadí dle průměru"])
