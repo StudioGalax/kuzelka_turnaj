@@ -12,22 +12,28 @@ def display_table(df, sort_by, columns):
     
     df_show = df[columns].copy()
     
-    # Převedeme vše na string, aby Streamlit vše chápal jako text 
-    # a mohl to zarovnat stejně
+    # Převedeme na text pro jednotné zarovnání
     for col in df_show.columns:
         if col == 'Celkem':
             df_show[col] = df_show[col].apply(lambda x: f"{int(x)}")
         elif col == 'Průměr na hod':
             df_show[col] = df_show[col].apply(lambda x: f"{x:.2f}")
+
+    # Definice úzkých sloupců
+    col_config = {
+        "Pořadí": st.column_config.TextColumn("Pořadí", width="small"),
+        "Jméno": st.column_config.TextColumn("Jméno", width="medium"),
+        "Celkem": st.column_config.TextColumn("Celkem", width="small"),
+        "Průměr na hod": st.column_config.TextColumn("∅ na hod", width="small"),
+        "Best kolo": st.column_config.TextColumn("Best kolo", width="small"),
+        "Forma": st.column_config.TextColumn("Forma", width="small")
+    }
     
-    # Použijeme st.dataframe, ale přidáme konfiguraci pro zarovnání
-    # 'text' column_config umožní vycentrování celého obsahu
-    col_config = {col: st.column_config.TextColumn(col) for col in df_show.columns}
-    
+    # Vypneme use_container_width, aby se tabulka nenatahovala
     st.dataframe(
         df_show, 
         hide_index=True, 
-        use_container_width=True,
+        use_container_width=False, 
         column_config=col_config
     )
 
