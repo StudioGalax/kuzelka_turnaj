@@ -5,8 +5,9 @@ import os
 
 # --- SIDEBAR - KONTAKT ---
 with st.sidebar:
-    # 1. Vložení loga (ujisti se, že soubor 'Studio_Galax_1920x1080.png' je ve stejné složce)
-    st.image("Studio_Galax_1920x1080.png", use_container_width=True)
+    # Cesta k logu
+    try: st.image(os.path.join(DATA_FOLDER, "Studio_Galax_1920x1080.png"), use_container_width=True)
+    except: st.warning("Logo nenalezeno")
     
     st.markdown("### Studio Galax")
     st.markdown("---")
@@ -21,8 +22,9 @@ with st.sidebar:
     # Zde vypiš svůj odkaz - je to přehledné a funkční
     st.code("https://bit.ly/3SGN1ay", language=None)
     
-    # Zobrazení QR kódu pod odkazem
-    st.image("statistiky_qrcode.png", width=150)
+    # Cesta ke QR kódu
+    try: st.image(os.path.join(DATA_FOLDER, "turnaj_qr.png"), width=150)
+    except: st.info("QR kód nenalezen")
 
 # --- FUNKCE PRO ZOBRAZENÍ TABULKY S "ZEBROVÁNÍM" ---
 def display_table(df, sort_by, columns):
