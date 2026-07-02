@@ -56,29 +56,29 @@ if all_stats:
 
     # 3. VÝSTUP S BARVAMI
     def display_table(df, sort_by):
-    df = df.sort_values(by=sort_by, ascending=False).reset_index(drop=True)
-    df.insert(0, 'Pořadí', range(1, len(df) + 1))
+        df = df.sort_values(by=sort_by, ascending=False).reset_index(drop=True)
+        df.insert(0, 'Pořadí', range(1, len(df) + 1))
     
-    # 1. Definice konfigurace sloupců pro zarovnání na střed
-    # 'center' zajistí, že čísla nebudou přilepená ke kraji
-    col_config = {
-        "Pořadí": st.column_config.NumberColumn("Pořadí", width="small"),
-        "Jméno": st.column_config.TextColumn("Jméno", width="medium"),
-        "Celkem": st.column_config.NumberColumn("Celkem", format="%d", width="small"),
-        "Best kolo": st.column_config.TextColumn("Best kolo", width="small"),
-        "Forma": st.column_config.TextColumn("Forma", width="small")
-    }
+        # 1. Definice konfigurace sloupců pro zarovnání na střed
+        # 'center' zajistí, že čísla nebudou přilepená ke kraji
+        col_config = {
+            "Pořadí": st.column_config.NumberColumn("Pořadí", width="small"),
+            "Jméno": st.column_config.TextColumn("Jméno", width="medium"),
+            "Celkem": st.column_config.NumberColumn("Celkem", format="%d", width="small"),
+            "Best kolo": st.column_config.TextColumn("Best kolo", width="small"),
+            "Forma": st.column_config.TextColumn("Forma", width="small")
+        }
     
-    # 2. Použijeme st.columns pro omezení šířky (aby to nebylo přes celou stránku)
-    # Vytvoříme sloupec, který zabírá např. 70 % šířky
-    c1, c2, c3 = st.columns([0.1, 0.8, 0.1])
-    with c2:
-        st.dataframe(
-            df, 
-            hide_index=True, 
-            use_container_width=True, # Tady to necháme, protože to omezí kontejner c2
-            column_config=col_config
-        )
+        # 2. Použijeme st.columns pro omezení šířky (aby to nebylo přes celou stránku)
+        # Vytvoříme sloupec, který zabírá např. 70 % šířky
+        c1, c2, c3 = st.columns([0.1, 0.8, 0.1])
+        with c2:
+            st.dataframe(
+                df, 
+                hide_index=True, 
+                use_container_width=True, # Tady to necháme, protože to omezí kontejner c2
+                column_config=col_config
+            )
 
     tab1, tab2 = st.tabs(["Celkové pořadí", "Pořadí dle průměru"])
     with tab1:
