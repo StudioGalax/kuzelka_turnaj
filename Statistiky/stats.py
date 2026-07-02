@@ -5,49 +5,65 @@ import os
 
 # --- FUNKCE PRO ZOBRAZENÍ TABULKY S "ZEBROVÁNÍM" ---
 def display_table(df, sort_by, columns):
-    # 1. Pořadí
     df = df.sort_values(by=sort_by, ascending=False).copy()
     df['Pořadí'] = df[sort_by].rank(method='min', ascending=False).astype(int)
     
-    # 2. Příprava dat
     cols_to_show = ['Pořadí'] + columns
     df_show = df[cols_to_show].copy()
     
-    # Formátování na stringy
     for col in df_show.columns:
         if col == 'Celkem':
             df_show[col] = df_show[col].astype(int).astype(str)
         elif col == 'Průměr na hod':
             df_show[col] = df_show[col].apply(lambda x: f"{x:.2f}")
 
-    # 3. HTML s CSS: 
-    # .col-center nastavuje vše na střed, .custom-table dělá zebru
     html = """
     <style>
         .custom-table { width: 100%; border-collapse: collapse; font-family: sans-serif; }
         .custom-table th, .custom-table td { padding: 10px; border-bottom: 1px solid #ddd; }
-        
-        /* Jméno (druhý sloupec, index 1) zarovnáme vlevo */
         .custom-table td:nth-child(2), .custom-table th:nth-child(2) { text-align: left; }
-        
-        /* Ostatní sloupce zarovnáme na střed */
         .custom-table th, .custom-table td { text-align: center; }
-        
         .custom-table th { background-color: #f9f9f9; }
         .custom-table tr:nth-of-type(even) { background-color: #f2f2f2; }
     </style>
     <table class="custom-table">
-        <thead>
-            <tr>""" + "".join([f"<th>{col}</th>" for col in df_show.columns]) + """</tr>
-        </thead>
+        <thead><tr>""" + "".join([f"<th>{col}</th>" for col in df_show.columns]) + """</tr></thead>
         <tbody>""" + "".join([
             "<tr>" + "".join([f"<td>{val}</td>" for val in row]) + "</tr>" 
             for _, row in df_show.iterrows()
         ]) + """</tbody>
     </table>
     """
+    with st.container(height=400):
+        st.markdown(html, unsafe_allow_html=True)
+
+# --- FUNKCE PRO TOP 10 NÁHOZŮ ---
+def display_top_10_hody(df_raw):
+    all_throws = []
+    for _, row in df_raw.iterrows():
+        for throw in row['Surove_Body']:
+            all_throws.append({"Jméno": row['Jméno'], "Body": throw})
     
-    # 4. Kontejner s pevnou výškou zajistí rolování (posuvník)
+    df_throws = pd.DataFrame(all_throws)
+    top_10 = df_throws.sort_values(by='Body', ascending=False).head(10).reset_index(drop=True)
+    top_10['Pořadí'] = range(1, len(top_10) + 1)
+    
+    html = """
+    <style>
+        .custom-table { width: 100%; border-collapse: collapse; font-family: sans-serif; }
+        .custom-table th, .custom-table td { padding: 10px; border-bottom: 1px solid #ddd; text-align: center; }
+        .custom-table td:nth-child(2) { text-align: left; }
+        .custom-table th { background-color: #f9f9f9; }
+        .custom-table tr:nth-of-type(even) { background-color: #f2f2f2; }
+    </style>
+    <table class="custom-table">
+        <thead><tr><th>Pořadí</th><th>Jméno</th><th>Body v hodu</th></tr></thead>
+        <tbody>""" + "".join([
+            f"<tr><td>{row['Pořadí']}</td><td>{row['Jméno']}</td><td>{row['Body']}</td></tr>" 
+            for _, row in top_10.iterrows()
+        ]) + """</tbody>
+    </table>
+    """
     with st.container(height=400):
         st.markdown(html, unsafe_allow_html=True)
 
@@ -104,10 +120,13 @@ if all_stats:
     # Použijeme sloupce pro zúžení tabulky
     col1, col2, col3 = st.columns([1, 6, 1])
     with col2:
-        tab1, tab2 = st.tabs(["Celkové pořadí", "Pořadí dle průměru"])
+        # ZDE PŘIDÁVÁME TŘETÍ TAB
+        tab1, tab2, tab3 = st.tabs(["Celkové pořadí", "Pořadí dle průměru", "Top 10 náhozů"])
         with tab1:
             display_table(df_final, 'Celkem', ['Jméno', 'Celkem', 'Best kolo', 'Forma'])
         with tab2:
             display_table(df_final, 'Průměr na hod', ['Jméno', 'Průměr na hod', 'Best kolo', 'Forma'])
+        with tab3:
+            display_top_10_hody(df_raw)
 else:
     st.info("Žádná data k zobrazení.")
