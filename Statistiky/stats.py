@@ -10,14 +10,26 @@ def display_table(df, sort_by, columns):
     df = df.sort_values(by=sort_by, ascending=False).reset_index(drop=True)
     df.insert(0, 'Pořadí', range(1, len(df) + 1))
     
-    # Formátování čísel pro hezký vzhled
     df_show = df[columns].copy()
-    if 'Celkem' in df_show.columns:
-        df_show['Celkem'] = df_show['Celkem'].astype(int)
-    if 'Průměr na hod' in df_show.columns:
-        df_show['Průměr na hod'] = df_show['Průměr na hod'].map('{:.2f}'.format)
     
-    st.dataframe(df_show, hide_index=True, use_container_width=True)
+    # Převedeme vše na string, aby Streamlit vše chápal jako text 
+    # a mohl to zarovnat stejně
+    for col in df_show.columns:
+        if col == 'Celkem':
+            df_show[col] = df_show[col].apply(lambda x: f"{int(x)}")
+        elif col == 'Průměr na hod':
+            df_show[col] = df_show[col].apply(lambda x: f"{x:.2f}")
+    
+    # Použijeme st.dataframe, ale přidáme konfiguraci pro zarovnání
+    # 'text' column_config umožní vycentrování celého obsahu
+    col_config = {col: st.column_config.TextColumn(col) for col in df_show.columns}
+    
+    st.dataframe(
+        df_show, 
+        hide_index=True, 
+        use_container_width=True,
+        column_config=col_config
+    )
 
 # --- HLAVNÍ LOGIKA ---
 DATA_FOLDER = 'Historie_turnaju_json'
