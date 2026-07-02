@@ -13,28 +13,28 @@ def display_table(df, sort_by, columns):
     cols_to_show = ['Pořadí'] + columns
     df_show = df[cols_to_show].copy()
     
-    # 3. Formátování (převod na text pro jistotu)
-    for col in df_show.columns:
-        if col == 'Celkem':
-            df_show[col] = df_show[col].astype(int)
-        elif col == 'Průměr na hod':
-            df_show[col] = df_show[col].apply(lambda x: f"{x:.2f}")
+    # 3. Formátování hodnot
+    if 'Celkem' in df_show.columns:
+        df_show['Celkem'] = df_show['Celkem'].astype(int)
+    if 'Průměr na hod' in df_show.columns:
+        df_show['Průměr na hod'] = df_show['Průměr na hod'].apply(lambda x: f"{x:.2f}")
 
-    # 4. ZEBRA přes styler
-    # Obarví sudé řádky šedou barvou
-    def apply_zebra(df):
-        return pd.DataFrame([['background-color: #f2f2f2'] * len(df.columns)] * len(df), 
-                            index=df.index, columns=df.columns)
+    # 4. CSS pro čistou zebru (vlož tohle do svého kódu, pokud tam ještě není)
+    # Toto CSS zajistí, že každý druhý řádek bude mít barvu a tabulka bude čistá
+    st.markdown("""
+        <style>
+        div[data-testid="stDataFrame"] table tbody tr:nth-of-type(even) {
+            background-color: #f2f2f2 !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
 
-    # Aplikujeme barvu na sudé řádky
-    styler = df_show.style.apply(lambda x: ['background-color: #f2f2f2' if x.name % 2 != 0 else '' for _ in x], axis=1)
-
-    # 5. Vykreslení - BEZ column_config, který způsobuje chyby
+    # 5. Vykreslení - čistý dataframe bez .style
     st.dataframe(
-        styler, 
-        hide_index=True, 
-        use_container_width=True,
-        height=400
+        df_show, 
+        hide_index=True,        # Skryje ten indexový sloupec vlevo
+        use_container_width=True, 
+        height=400              # Pevná výška s posuvníkem
     )
 
 # --- HLAVNÍ LOGIKA ---
