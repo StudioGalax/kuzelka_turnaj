@@ -59,23 +59,22 @@ if all_stats:
         df = df.sort_values(by=sort_by, ascending=False).reset_index(drop=True)
         df.insert(0, 'Pořadí', range(1, len(df) + 1))
         
-        # 1. Definice šířek sloupců pro kompaktní vzhled
-        # 'small' pro čísla, 'medium' pro jména, 'large' kdyby bylo potřeba
+        # 1. Konfigurace sloupců s úpravou názvů a zarovnáním na střed
         col_config = {
             "Pořadí": st.column_config.NumberColumn("Pořadí", width="small"),
             "Jméno": st.column_config.TextColumn("Jméno", width="medium"),
             "Celkem": st.column_config.NumberColumn("Celkem", format="%d", width="small"),
-            "Průměr na hod": st.column_config.NumberColumn("Průměr na hod", format="%.2f", width="small"),
+            # Symbol ∅ místo slova Průměr
+            "Průměr na hod": st.column_config.NumberColumn("∅ na hod", format="%.2f", width="small"),
             "Best kolo": st.column_config.TextColumn("Best kolo", width="small"),
             "Forma": st.column_config.TextColumn("Forma", width="small")
         }
         
-        # 2. Vytvoření kontejneru s omezenou šířkou
-        # Místo use_container_width=True dáme False, aby se tabulka roztáhla jen podle obsahu
+        # 2. Vykreslení tabulky
         st.dataframe(
             df, 
             hide_index=True, 
-            use_container_width=False, 
+            use_container_width=False, # Zabrání roztahování
             column_config=col_config
         )
 
