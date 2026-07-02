@@ -5,32 +5,37 @@ import os
 
 # --- FUNKCE PRO ZOBRAZENÍ TABULKY S "ZEBROVÁNÍM" ---
 def display_table(df, sort_by, columns):
-    # 1. Pořadí
     df = df.sort_values(by=sort_by, ascending=False).copy()
     df['Pořadí'] = df[sort_by].rank(method='min', ascending=False).astype(int)
     
-    # 2. Sestavení
+    # Vybereme jen sloupce, které chceme
     cols_to_show = ['Pořadí'] + columns
     df_show = df[cols_to_show].copy()
     
-    # Formátování
-    for col in df_show.columns:
-        if col == 'Celkem':
-            df_show[col] = df_show[col].apply(lambda x: f"{int(x)}")
-        elif col == 'Průměr na hod':
-            df_show[col] = df_show[col].apply(lambda x: f"{x:.2f}")
+    # Formátování (převod na text)
+    if 'Celkem' in df_show.columns:
+        df_show['Celkem'] = df_show['Celkem'].astype(int).astype(str)
+    if 'Průměr na hod' in df_show.columns:
+        df_show['Průměr na hod'] = df_show['Průměr na hod'].apply(lambda x: f"{x:.2f}")
 
-    # 3. ZVÝRAZNĚNÍ ZEBRA (přes CSS v markdownu)
-    st.markdown("""
-        <style>
-            /* Toto cílí na každou tabulku v aplikaci */
-            table { border-collapse: collapse; width: 100%; }
-            tbody tr:nth-of-type(odd) { background-color: #f2f2f2 !important; }
-        </style>
-    """, unsafe_allow_html=True)
+    # Definice sloupců
+    col_config = {
+        "Pořadí": st.column_config.TextColumn("Pořadí", width="small"),
+        "Jméno": st.column_config.TextColumn("Jméno", width="medium"),
+        "Celkem": st.column_config.TextColumn("Celkem", width="small"),
+        "Průměr na hod": st.column_config.TextColumn("∅ na hod", width="small"),
+        "Best kolo": st.column_config.TextColumn("Best kolo", width="small"),
+        "Forma": st.column_config.TextColumn("Forma", width="small")
+    }
     
-    # 4. Vykreslení pomocí st.table
-    st.table(df_show)
+    # 3. Zobrazení: hide_index=True a pevná výška
+    st.dataframe(
+        df_show, 
+        hide_index=True,        # Toto odstraní ten sloupec s čísly 4, 14, 0...
+        use_container_width=True, 
+        column_config=col_config,
+        height=400             # Tabulka bude vysoká 400 pixelů, zbytek bude mít posuvník
+    )
 
 # --- HLAVNÍ LOGIKA ---
 DATA_FOLDER = 'Historie_turnaju_json'
