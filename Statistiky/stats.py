@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import json
 import os
+import streamlit.components.v1 as components
 
 # --- KONFIGURACE - DEFINOVAT HNED NA ZAČÁTKU ---
 DATA_FOLDER = 'Historie_turnaju_json'
@@ -64,11 +65,21 @@ def display_top_10_hody(df_raw):
     df_throws['Pořadí'] = df_throws['Body'].rank(method='min', ascending=False).astype(int)
     top_10 = df_throws.sort_values(by='Body', ascending=False).head(10).reset_index(drop=True)
     
-    html = """<style>.custom-table { width: 100%; border-collapse: collapse; font-family: sans-serif; } .custom-table th, .custom-table td { padding: 10px; border-bottom: 1px solid #ddd; text-align: center; } .custom-table td:nth-child(2) { text-align: left; } .custom-table th { background-color: #f9f9f9; } .custom-table tr:nth-of-type(even) { background-color: #f2f2f2; }</style>
-    <table class="custom-table"><thead><tr><th>Pořadí</th><th>Jméno</th><th>Body</th></tr></thead>
-    <tbody>""" + "".join([f"<tr><td>{row['Pořadí']}</td><td>{row['Jméno']}</td><td>{row['Body']}</td></tr>" for _, row in top_10.iterrows()]) + """</tbody></table>"""
-    with st.container(height=400):
-        st.markdown(html, unsafe_allow_html=True)
+    html = """
+    <style>
+        .custom-table { width: 100%; border-collapse: collapse; font-family: sans-serif; }
+        .custom-table th, .custom-table td { padding: 10px; border-bottom: 1px solid #ddd; text-align: center; }
+        .custom-table td:nth-child(2) { text-align: left; }
+        .custom-table th { background-color: #f9f9f9; }
+        .custom-table tr:nth-of-type(even) { background-color: #f2f2f2; }
+    </style>
+    <table class="custom-table">
+        <thead><tr><th>Pořadí</th><th>Jméno</th><th>Body</th></tr></thead>
+        <tbody>""" + "".join([f"<tr><td>{row['Pořadí']}</td><td>{row['Jméno']}</td><td>{row['Body']}</td></tr>" for _, row in top_10.iterrows()]) + """</tbody>
+    </table>
+    """
+    # Toto je ta změna:
+    components.html(html, height=400, scrolling=True)
 
 # --- FUNKCE PRO JEDEN TURNAJ ---
 def display_single_tournament(df_raw):
