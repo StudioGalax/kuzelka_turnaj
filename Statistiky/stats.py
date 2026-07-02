@@ -47,7 +47,10 @@ if all_stats:
     def render_table(df, sort_by):
         df = df.sort_values(by=sort_by, ascending=False).reset_index(drop=True)
         df.insert(0, 'Pořadí', range(1, len(df) + 1))
-        df['Průměr'] = df['Průměr'].map('{:.1f}'.format)
+        
+        # Formátování sloupce Průměr pouze pokud v tabulce existuje
+        if 'Průměr' in df.columns:
+            df['Průměr'] = df['Průměr'].map('{:.1f}'.format)
         
         def zebra(row):
             return ['background-color: #f0f2f6'] * len(row) if row.name % 2 != 0 else ['background-color: white'] * len(row)
