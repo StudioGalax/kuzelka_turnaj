@@ -8,6 +8,17 @@ import plotly.express as px
 DATA_FOLDER = 'Historie_turnaju_json'
 HRACI_FILE = 'Statistiky/hraci.csv'
 
+# Pomocná funkce pro zebra styl
+def get_styled_table(df, sort_col):
+    df = df.sort_values(by=sort_col, ascending=False).reset_index(drop=True)
+    df.insert(0, 'Pořadí', range(1, len(df) + 1))
+        
+    # Zebra styl
+    def zebra_style(row):
+        return ['background-color: #f0f2f6'] * len(row) if row.name % 2 != 0 else ['background-color: white'] * len(row)
+        
+    return df.style.apply(zebra_style, axis=1).to_html(index=False, escape=False, justify='center')
+
 st.set_page_config(page_title="Kuželky - Statistiky", layout="wide")
 st.title("📊 Statistiky kuželkářského turnaje")
 
@@ -57,14 +68,11 @@ if all_stats:
     
     with tab1:
         st.subheader("Celkové pořadí")
-        df_celkem = df_final.sort_values(by='Celkem', ascending=False)
-        # Používáme to_html pro zobrazení barevných šipek
-        st.write(df_celkem.to_html(index=False, escape=False, justify='center'), unsafe_allow_html=True)
+        st.write(get_styled_table(df_final[['Jméno', 'Celkem', 'Forma']], 'Celkem'), unsafe_allow_html=True)
 
     with tab2:
         st.subheader("Pořadí dle průměru")
-        df_prumer = df_final.sort_values(by='Průměr', ascending=False)
-        st.write(df_prumer.to_html(index=False, escape=False, justify='center'), unsafe_allow_html=True)
+        st.write(get_styled_table(df_final[['Jméno', 'Průměr', 'Forma']], 'Průměr'), unsafe_allow_html=True)
         
     with tab3:
         st.subheader("Archiv turnajů")
