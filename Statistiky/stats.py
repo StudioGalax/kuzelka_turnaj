@@ -5,37 +5,41 @@ import os
 
 # --- FUNKCE PRO ZOBRAZENÍ TABULKY S "ZEBROVÁNÍM" ---
 def display_table(df, sort_by, columns):
-    # 1. Výpočet pořadí se shodou
+    # 1. Pořadí
     df = df.sort_values(by=sort_by, ascending=False).copy()
     df['Pořadí'] = df[sort_by].rank(method='min', ascending=False).astype(int)
     
-    # 2. Sestavení pořadí sloupců
+    # 2. Příprava dat
     cols_to_show = ['Pořadí'] + columns
     df_show = df[cols_to_show].copy()
     
-    # 3. Formátování hodnot
-    if 'Celkem' in df_show.columns:
-        df_show['Celkem'] = df_show['Celkem'].astype(int)
-    if 'Průměr na hod' in df_show.columns:
-        df_show['Průměr na hod'] = df_show['Průměr na hod'].apply(lambda x: f"{x:.2f}")
+    # Formátování na stringy (aby byly všechny "text" a držely zarovnání vlevo)
+    for col in df_show.columns:
+        if col == 'Celkem':
+            df_show[col] = df_show[col].astype(int).astype(str)
+        elif col == 'Průměr na hod':
+            df_show[col] = df_show[col].apply(lambda x: f"{x:.2f}")
 
-    # 4. CSS pro čistou zebru (vlož tohle do svého kódu, pokud tam ještě není)
-    # Toto CSS zajistí, že každý druhý řádek bude mít barvu a tabulka bude čistá
-    st.markdown("""
-        <style>
-        div[data-testid="stDataFrame"] table tbody tr:nth-of-type(even) {
-            background-color: #f2f2f2 !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-    # 5. Vykreslení - čistý dataframe bez .style
-    st.dataframe(
-        df_show, 
-        hide_index=True,        # Skryje ten indexový sloupec vlevo
-        use_container_width=True, 
-        height=400              # Pevná výška s posuvníkem
-    )
+    # 3. Ruční vygenerování HTML tabulky s CSS
+    html = """
+    <style>
+        .custom-table { width: 100%; border-collapse: collapse; font-family: sans-serif; }
+        .custom-table th { text-align: left; padding: 8px; border-bottom: 2px solid #ddd; }
+        .custom-table td { text-align: left; padding: 8px; }
+        .custom-table tr:nth-of-type(even) { background-color: #f2f2f2; }
+    </style>
+    <table class="custom-table">
+        <thead>
+            <tr>""" + "".join([f"<th>{col}</th>" for col in df_show.columns]) + """</tr>
+        </thead>
+        <tbody>""" + "".join([
+            "<tr>" + "".join([f"<td>{val}</td>" for val in row]) + "</tr>" 
+            for _, row in df_show.iterrows()
+        ]) + """</tbody>
+    </table>
+    """
+    
+    st.markdown(html, unsafe_allow_html=True)
 
 # --- HLAVNÍ LOGIKA ---
 DATA_FOLDER = 'Historie_turnaju_json'
