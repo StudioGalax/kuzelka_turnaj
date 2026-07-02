@@ -5,26 +5,26 @@ import os
 
 # --- SIDEBAR - KONTAKT ---
 # SIDEBAR - zde uprav cesty takto:
-    with st.sidebar:
-        # Změna: přidání os.path.join(DATA_FOLDER, ...)
-        try: 
-            st.image(os.path.join(DATA_FOLDER, "Studio_Galax_1920x1080.png"), use_container_width=True)
-        except Exception as e: 
-            st.warning(f"Logo nenalezeno: {e}")
+with st.sidebar:
+    # Změna: přidání os.path.join(DATA_FOLDER, ...)
+    try: 
+        st.image(os.path.join(DATA_FOLDER, "Studio_Galax_1920x1080.png"), use_container_width=True)
+    except Exception as e: 
+        st.warning(f"Logo nenalezeno: {e}")
         
-        st.markdown("### Studio Galax")
-        st.markdown("🛠 **Vibe Coder: Jan Bugdol**")
-        st.markdown("📧 [studiogalax.cz@gmail.com](mailto:studiogalax.cz@gmail.com)")
-        st.divider()
+    st.markdown("### Studio Galax")
+    st.markdown("🛠 **Vibe Coder: Jan Bugdol**")
+    st.markdown("📧 [studiogalax.cz@gmail.com](mailto:studiogalax.cz@gmail.com)")
+    st.divider()
         
-        st.markdown("### 📱 Odkaz na turnaj")
-        st.code("https://bit.ly/3SGN1ay", language=None)
+    st.markdown("### 📱 Odkaz na turnaj")
+    st.code("https://bit.ly/3SGN1ay", language=None)
         
-        # Změna: přidání os.path.join(DATA_FOLDER, ...)
-        try: 
-            st.image(os.path.join(DATA_FOLDER, "statistiky_qrcode.png"), width=150)
-        except Exception as e: 
-            st.info(f"QR kód nenalezen: {e}")
+    # Změna: přidání os.path.join(DATA_FOLDER, ...)
+    try: 
+        st.image(os.path.join(DATA_FOLDER, "statistiky_qrcode.png"), width=150)
+    except Exception as e: 
+        st.info(f"QR kód nenalezen: {e}")
 
 # --- FUNKCE PRO ZOBRAZENÍ TABULKY S "ZEBROVÁNÍM" ---
 def display_table(df, sort_by, columns):
