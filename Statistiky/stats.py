@@ -3,6 +3,22 @@ import pandas as pd
 import json
 import os
 
+# --- SIDEBAR - KONTAKT ---
+with st.sidebar:
+    st.markdown("### 🛠 Vibe Coder")
+    st.write("**Jan Bugdol**")
+    st.markdown("📧 [studiogalax.cz@gmail.com](mailto:studiogalax.cz@gmail.com)")
+    
+    st.divider()
+    
+    st.markdown("### 📱 Odkaz na turnaj")
+    st.caption("Naskenuj QR nebo zkopíruj odkaz:")
+    # Zde vypiš svůj odkaz - je to přehledné a funkční
+    st.code("https://bit.ly/3SGN1ay", language=None)
+    
+    # Zobrazení QR kódu pod odkazem
+    st.image("statistiky_qrcode.png", width=150)
+
 # --- FUNKCE PRO ZOBRAZENÍ TABULKY S "ZEBROVÁNÍM" ---
 def display_table(df, sort_by, columns):
     df = df.sort_values(by=sort_by, ascending=False).copy()
