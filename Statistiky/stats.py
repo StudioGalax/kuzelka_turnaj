@@ -10,14 +10,16 @@ HRACI_FILE = 'Statistiky/hraci.csv'
 
 # Pomocná funkce pro zebra styl
 def get_styled_table(df, sort_col):
-    df = df.sort_values(by=sort_col, ascending=False).reset_index(drop=True)
-    df.insert(0, 'Pořadí', range(1, len(df) + 1))
+        df = df.sort_values(by=sort_col, ascending=False).reset_index(drop=True)
+        # Přidáme Pořadí jako první
+        df.insert(0, 'Pořadí', range(1, len(df) + 1))
         
-    # Zebra styl
-    def zebra_style(row):
-        return ['background-color: #f0f2f6'] * len(row) if row.name % 2 != 0 else ['background-color: white'] * len(row)
+        # Zebra styl
+        def zebra_style(row):
+            return ['background-color: #f0f2f6'] * len(row) if row.name % 2 != 0 else ['background-color: white'] * len(row)
         
-    return df.style.apply(zebra_style, axis=1).to_html(index=False, escape=False, justify='center')
+        # Klíčové: index=False zajistí, že se ten sloupec s čísly řádků (0, 1, 2...) nezobrazí
+        return df.style.apply(zebra_style, axis=1).to_html(index=False, escape=False, justify='center')
 
 st.set_page_config(page_title="Kuželky - Statistiky", layout="wide")
 st.title("📊 Statistiky kuželkářského turnaje")
@@ -38,29 +40,23 @@ if os.path.exists(DATA_FOLDER):
                 for player_name, scores in team.items():
                     all_stats.append({"Jméno": player_name.strip(), "Body": sum(scores)})
 
-# 3. Zpracování dat (s novou logikou formy)
-if all_stats:
-    df_results = pd.DataFrame(all_stats)
-    
-    def get_forma(data):
-        if len(data) < 3: return "➡️" 
-        posledni = data[-1]
-        prumer_predchozich = sum(data[-3:-1]) / 2 
-        rozdil = posledni - prumer_predchozich
-        if rozdil >= 10: return '<span style="color:green">⬆️</span>'
-        if rozdil <= -10: return '<span style="color:red">⬇️</span>'
-        return '<span style="color:blue">➡️</span>'
-
+# 3. Zpracování dat
     hraci_data = []
     for jmeno, group in df_results.groupby('Jméno'):
         body_seznam = group['Body'].tolist()
+        # Průměr na jedno desetinné místo
+        prumer = round(sum(body_seznam) / len(body_seznam), 1)
+        forma = get_forma(body_seznam)
+        # Oblíbené kolo (zjednodušeně: max výkon hráče)
+        max_v_kole = max(body_seznam)
+        
         hraci_data.append({
             "Jméno": jmeno,
             "Celkem": sum(body_seznam),
-            "Průměr": round(sum(body_seznam) / len(body_seznam), 1),
-            "Forma": get_forma(body_seznam)
+            "Průměr": prumer,
+            "Max v kole": max_v_kole, # Toto je "oblíbené" kolo
+            "Forma": forma
         })
-    
     df_final = pd.DataFrame(hraci_data)
     
     # 4. Výstup v záložkách
@@ -68,12 +64,13 @@ if all_stats:
     
     with tab1:
         st.subheader("Celkové pořadí")
-        st.write(get_styled_table(df_final[['Jméno', 'Celkem', 'Forma']], 'Celkem'), unsafe_allow_html=True)
+        # Zobrazíme vybrané sloupce
+        st.write(get_styled_table(df_final[['Jméno', 'Celkem', 'Max v kole', 'Forma']], 'Celkem'), unsafe_allow_html=True)
 
     with tab2:
         st.subheader("Pořadí dle průměru")
-        st.write(get_styled_table(df_final[['Jméno', 'Průměr', 'Forma']], 'Průměr'), unsafe_allow_html=True)
-        
+        st.write(get_styled_table(df_final[['Jméno', 'Průměr', 'Max v kole', 'Forma']], 'Průměr'), unsafe_allow_html=True)
+    
     with tab3:
         st.subheader("Archiv turnajů")
         for file_name in sorted(os.listdir(DATA_FOLDER), reverse=True):
