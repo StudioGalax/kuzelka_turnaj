@@ -5,44 +5,32 @@ import os
 
 # --- FUNKCE PRO ZOBRAZENÍ TABULKY S "ZEBROVÁNÍM" ---
 def display_table(df, sort_by, columns):
-    # 1. Pořadí se shodou
+    # 1. Pořadí
     df = df.sort_values(by=sort_by, ascending=False).copy()
     df['Pořadí'] = df[sort_by].rank(method='min', ascending=False).astype(int)
     
-    # 2. Sestavení sloupců
+    # 2. Sestavení
     cols_to_show = ['Pořadí'] + columns
     df_show = df[cols_to_show].copy()
     
-    # 3. Formátování hodnot pro sjednocení typu (vše jako text)
+    # Formátování
     for col in df_show.columns:
         if col == 'Celkem':
             df_show[col] = df_show[col].apply(lambda x: f"{int(x)}")
         elif col == 'Průměr na hod':
             df_show[col] = df_show[col].apply(lambda x: f"{x:.2f}")
 
-    # 4. Použití Pandas Styleru pro zebrování (vynucené střídání barev)
-    def style_zebra(row):
-        return ['background-color: #f9f9f9' if row.name % 2 != 0 else '' for _ in row]
-
-    styled_df = df_show.style.apply(style_zebra, axis=1)
-
-    # 5. Konfigurace sloupců
-    col_config = {
-        "Pořadí": st.column_config.TextColumn("Pořadí", width="small"),
-        "Jméno": st.column_config.TextColumn("Jméno", width="medium"),
-        "Celkem": st.column_config.TextColumn("Celkem", width="small"),
-        "Průměr na hod": st.column_config.TextColumn("∅ na hod", width="small"),
-        "Best kolo": st.column_config.TextColumn("Best kolo", width="small"),
-        "Forma": st.column_config.TextColumn("Forma", width="small")
-    }
+    # 3. ZVÝRAZNĚNÍ ZEBRA (přes CSS v markdownu)
+    st.markdown("""
+        <style>
+            /* Toto cílí na každou tabulku v aplikaci */
+            table { border-collapse: collapse; width: 100%; }
+            tbody tr:nth-of-type(odd) { background-color: #f2f2f2 !important; }
+        </style>
+    """, unsafe_allow_html=True)
     
-    # 6. Vykreslení (st.dataframe nyní bere styled_df)
-    st.dataframe(
-        styled_df, 
-        hide_index=True, 
-        use_container_width=False, 
-        column_config=col_config
-    )
+    # 4. Vykreslení pomocí st.table
+    st.table(df_show)
 
 # --- HLAVNÍ LOGIKA ---
 DATA_FOLDER = 'Historie_turnaju_json'
