@@ -5,6 +5,11 @@ import os
 
 # --- SIDEBAR - KONTAKT ---
 with st.sidebar:
+    # 1. Vložení loga (ujisti se, že soubor 'Studio_Galax_1920x1080.png' je ve stejné složce)
+    st.image("Studio_Galax_1920x1080.png", use_container_width=True)
+    
+    st.markdown("### Studio Galax")
+    st.markdown("---")
     st.markdown("### 🛠 Vibe Coder")
     st.write("**Jan Bugdol**")
     st.markdown("📧 [studiogalax.cz@gmail.com](mailto:studiogalax.cz@gmail.com)")
