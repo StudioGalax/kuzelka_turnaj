@@ -8,29 +8,35 @@ def display_table(df, sort_by, columns):
     df = df.sort_values(by=sort_by, ascending=False).copy()
     df['Pořadí'] = df[sort_by].rank(method='min', ascending=False).astype(int)
     
+    # Sloupec Pořadí bude první
     cols_to_show = ['Pořadí'] + columns
     df_show = df[cols_to_show].copy()
     
-    # Formátování
-    for col in df_show.columns:
-        if col == 'Celkem':
-            df_show[col] = df_show[col].astype(int)
-        elif col == 'Průměr na hod':
-            df_show[col] = df_show[col].map('{:.2f}'.format)
-            
-    # 1. Definice barevné zebry přes styler
-    def style_zebra(df):
-        # Vytvoříme prázdný DataFrame se stejným tvarem
-        style = pd.DataFrame('', index=df.index, columns=df.columns)
-        # Obarvíme sudé řádky
-        style.iloc[1::2, :] = 'background-color: #f2f2f2'
-        return style
+    # Formátování (převod na text)
+    if 'Celkem' in df_show.columns:
+        df_show['Celkem'] = df_show['Celkem'].astype(int)
+    if 'Průměr na hod' in df_show.columns:
+        df_show['Průměr na hod'] = df_show['Průměr na hod'].apply(lambda x: f"{x:.2f}")
 
-    # 2. Vykreslení
+    # 1. Definice konfigurace se zarovnáním "left"
+    col_config = {col: st.column_config.Column(col, horizontal_alignment="left") 
+                  for col in df_show.columns}
+    
+    # 2. Vynucení zebry přes styler
+    def style_zebra(data):
+        return pd.DataFrame([['background-color: #f2f2f2'] * len(data.columns)] * len(data), 
+                            index=data.index, columns=data.columns)
+    
+    # Zebra se aplikuje pouze na sudé řádky
+    styler = df_show.style.apply(lambda x: ['background-color: #f2f2f2' if i % 2 != 0 else '' 
+                                            for i in range(len(x))], axis=1)
+
+    # 3. Vykreslení
     st.dataframe(
-        df_show.style.apply(style_zebra, axis=None), 
+        styler, 
         hide_index=True, 
         use_container_width=True,
+        column_config=col_config,
         height=400
     )
 
