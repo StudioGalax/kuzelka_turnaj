@@ -13,19 +13,20 @@ def display_table(df, sort_by, columns):
     cols_to_show = ['Pořadí'] + columns
     df_show = df[cols_to_show].copy()
     
-    # Formátování na stringy (aby byly všechny "text" a držely zarovnání vlevo)
+    # Formátování na stringy
     for col in df_show.columns:
         if col == 'Celkem':
             df_show[col] = df_show[col].astype(int).astype(str)
         elif col == 'Průměr na hod':
             df_show[col] = df_show[col].apply(lambda x: f"{x:.2f}")
 
-    # 3. Ruční vygenerování HTML tabulky s CSS
+    # 3. HTML s CSS: 
+    # .col-center nastavuje vše na střed, .custom-table dělá zebru
     html = """
     <style>
         .custom-table { width: 100%; border-collapse: collapse; font-family: sans-serif; }
-        .custom-table th { text-align: left; padding: 8px; border-bottom: 2px solid #ddd; }
-        .custom-table td { text-align: left; padding: 8px; }
+        .custom-table th, .custom-table td { text-align: center; padding: 10px; border-bottom: 1px solid #ddd; }
+        .custom-table th { background-color: #f9f9f9; }
         .custom-table tr:nth-of-type(even) { background-color: #f2f2f2; }
     </style>
     <table class="custom-table">
@@ -39,7 +40,9 @@ def display_table(df, sort_by, columns):
     </table>
     """
     
-    st.markdown(html, unsafe_allow_html=True)
+    # 4. Kontejner s pevnou výškou zajistí rolování (posuvník)
+    with st.container(height=400):
+        st.markdown(html, unsafe_allow_html=True)
 
 # --- HLAVNÍ LOGIKA ---
 DATA_FOLDER = 'Historie_turnaju_json'
