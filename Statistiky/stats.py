@@ -3,34 +3,79 @@ import pandas as pd
 import json
 import os
 
-# 1. NAČTENÍ DAT
-# (Tady tvůj kód pro načítání zůstává, jen se ujisti, že df_final obsahuje všechny sloupce)
-# ... [tvůj kód pro all_stats a df_final] ...
+st.set_page_config(page_title="Kuželky - Statistiky", layout="wide")
 
-def display_table(df, sort_by, columns_to_show):
-    # Vybereme jen ty sloupce, které skutečně máme
-    existing_cols = [c for c in columns_to_show if c in df.columns]
-    df_show = df[existing_cols].copy()
+# --- FUNKCE PRO ZOBRAZENÍ TABULKY ---
+def display_table(df, sort_by, columns):
+    df = df.sort_values(by=sort_by, ascending=False).reset_index(drop=True)
+    df.insert(0, 'Pořadí', range(1, len(df) + 1))
     
-    # Seřazení
-    if sort_by in df_show.columns:
-        df_show = df_show.sort_values(by=sort_by, ascending=False).reset_index(drop=True)
+    # Formátování čísel pro hezký vzhled
+    df_show = df[columns].copy()
+    if 'Celkem' in df_show.columns:
+        df_show['Celkem'] = df_show['Celkem'].astype(int)
+    if 'Průměr na hod' in df_show.columns:
+        df_show['Průměr na hod'] = df_show['Průměr na hod'].map('{:.2f}'.format)
     
-    # Přidání pořadí
-    df_show.insert(0, 'Pořadí', range(1, len(df_show) + 1))
+    st.dataframe(df_show, hide_index=True, use_container_width=True)
+
+# --- HLAVNÍ LOGIKA ---
+DATA_FOLDER = 'Historie_turnaju_json'
+all_stats = []
+
+if os.path.exists(DATA_FOLDER):
+    for file_name in os.listdir(DATA_FOLDER):
+        if file_name.endswith('.json'):
+            with open(os.path.join(DATA_FOLDER, file_name), 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                limit_hodu = data.get("limit_hodu", 15)
+                for team in data.get('teams', {}).values():
+                    for p_name, scores in team.items():
+                        all_stats.append({
+                            "Jméno": p_name.strip(),
+                            "Body": sum(scores),
+                            "Surove_Body": scores,
+                            "Turnaj": file_name,
+                            "Pocet_hodu": len(scores) * limit_hodu
+                        })
+
+if all_stats:
+    df_raw = pd.DataFrame(all_stats)
     
+    # Výpočet statistik
+    def process_player(group):
+        group = group.sort_values('Turnaj')
+        body_turnaje = group['Body'].tolist()
+        surove_body = [s for sublist in group['Surove_Body'] for s in sublist]
+        
+        nazozy = pd.DataFrame({'kolo': [(i % 4) + 1 for i in range(len(surove_body))], 'hod': surove_body})
+        best_kolo = nazozy.groupby('kolo')['hod'].mean().idxmax()
+        
+        forma = "▬"
+        if len(body_turnaje) >= 2:
+            rozdil = body_turnaje[-1] - body_turnaje[-2]
+            if rozdil >= 10: forma = "▲"
+            elif rozdil <= -10: forma = "▼"
+            
+        return pd.Series({
+            "Celkem": sum(body_turnaje),
+            "Průměr na hod": sum(body_turnaje) / sum(group['Pocet_hodu']),
+            "Best kolo": f"{best_kolo}. kolo",
+            "Forma": forma
+        })
+
+    df_final = df_raw.groupby('Jméno').apply(process_player).reset_index()
+
     # Zobrazení
-    st.dataframe(
-        df_show, 
-        hide_index=True, 
-        use_container_width=True
-    )
-
-# V hlavním bloku:
-tab1, tab2 = st.tabs(["Celkové pořadí", "Pořadí dle průměru"])
-
-with tab1:
-    display_table(df_final, 'Celkem', ['Jméno', 'Celkem', 'Best kolo', 'Forma'])
-
-with tab2:
-    display_table(df_final, 'Průměr na hod', ['Jméno', 'Průměr na hod', 'Best kolo', 'Forma'])
+    st.title("📊 Statistiky kuželkářského turnaje")
+    
+    # Použijeme sloupce pro zúžení tabulky
+    col1, col2, col3 = st.columns([1, 6, 1])
+    with col2:
+        tab1, tab2 = st.tabs(["Celkové pořadí", "Pořadí dle průměru"])
+        with tab1:
+            display_table(df_final, 'Celkem', ['Jméno', 'Celkem', 'Best kolo', 'Forma'])
+        with tab2:
+            display_table(df_final, 'Průměr na hod', ['Jméno', 'Průměr na hod', 'Best kolo', 'Forma'])
+else:
+    st.info("Žádná data k zobrazení.")
