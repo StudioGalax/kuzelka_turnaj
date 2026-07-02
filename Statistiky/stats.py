@@ -25,7 +25,14 @@ def display_table(df, sort_by, columns):
     html = """
     <style>
         .custom-table { width: 100%; border-collapse: collapse; font-family: sans-serif; }
-        .custom-table th, .custom-table td { text-align: center; padding: 10px; border-bottom: 1px solid #ddd; }
+        .custom-table th, .custom-table td { padding: 10px; border-bottom: 1px solid #ddd; }
+        
+        /* Jméno (druhý sloupec, index 1) zarovnáme vlevo */
+        .custom-table td:nth-child(2), .custom-table th:nth-child(2) { text-align: left; }
+        
+        /* Ostatní sloupce zarovnáme na střed */
+        .custom-table th, .custom-table td { text-align: center; }
+        
         .custom-table th { background-color: #f9f9f9; }
         .custom-table tr:nth-of-type(even) { background-color: #f2f2f2; }
     </style>
