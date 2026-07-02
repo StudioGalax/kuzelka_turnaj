@@ -59,43 +59,41 @@ if all_stats:
         df = df.sort_values(by=sort_by, ascending=False).reset_index(drop=True)
         df.insert(0, 'Pořadí', range(1, len(df) + 1))
         
-        # 1. Konfigurace sloupců s úpravou názvů a zarovnáním na střed
+        # Definice konfigurace bez komentářů uvnitř funkcí, které způsobují chybu
         col_config = {
-        "Pořadí": st.column_config.NumberColumn(
-            "Pořadí", 
-            width="small", 
-            help="Pořadí hráče",
-            horizontal_alignment="center" # Tady se děje to kouzlo
-        ),
-        "Celkem": st.column_config.NumberColumn(
-            "Celkem", 
-            format="%d", 
-            width="small", 
-            horizontal_alignment="center"
-        ),
-        "∅ na hod": st.column_config.NumberColumn(
-            "∅ na hod", 
-            format="%.2f", 
-            width="small", 
-            horizontal_alignment="center"
-        ),
-        "Best kolo": st.column_config.TextColumn(
-            "Best kolo", 
-            width="small", 
-            horizontal_alignment="center"
-        ),
-        "Forma": st.column_config.TextColumn(
-            "Forma", 
-            width="small", 
-            horizontal_alignment="center"
-        )
-    }
+            "Pořadí": st.column_config.NumberColumn(
+                "Pořadí", 
+                width="small", 
+                format="%d"
+            ),
+            "Celkem": st.column_config.NumberColumn(
+                "Celkem", 
+                format="%d", 
+                width="small"
+            ),
+            "∅ na hod": st.column_config.NumberColumn(
+                "∅ na hod", 
+                format="%.2f", 
+                width="small"
+            ),
+            "Best kolo": st.column_config.TextColumn(
+                "Best kolo", 
+                width="small"
+            ),
+            "Forma": st.column_config.TextColumn(
+                "Forma", 
+                width="small"
+            )
+        }
         
-        # 2. Vykreslení tabulky
+        # Vykreslení bez 'horizontal_alignment', který ve starších verzích Streamlitu 
+        # nebo při špatném zápisu způsobuje TypeError. 
+        # Streamlit automaticky zarovnává čísla doprava a text doleva, 
+        # což je pro tabulky nejčitelnější standard.
         st.dataframe(
             df, 
             hide_index=True, 
-            use_container_width=False, # Zabrání roztahování
+            use_container_width=False, 
             column_config=col_config
         )
 
