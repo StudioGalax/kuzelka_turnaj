@@ -36,16 +36,37 @@ if os.path.exists(DATA_FOLDER):
 # 3. Zpracování dat
 if all_stats:
     df_results = pd.DataFrame(all_stats)
-    df_total = df_results.groupby('Jméno')['Body'].sum().reset_index()
-    df_max_kolo = df_results.groupby('Jméno')['Max_v_kole'].max().reset_index()
-    df_max_kolo.rename(columns={'Max_v_kole': 'Rekord'}, inplace=True)
     
-    df_final = pd.merge(df_hraci, df_total, on='Jméno', how='left').fillna(0)
-    df_final['Body'] = df_final['Body'].astype(int)
+    # Funkce pro výpočet formy
+    def get_forma(data):
+        if len(data) < 3: return "➡️" 
+        posledni = data[-1]
+        prumer_predchozich = sum(data[-3:-1]) / 2 
+        rozdil = posledni - prumer_predchozich
+        if rozdil >= 10: return '<span style="color:green">⬆️</span>'
+        if rozdil <= -10: return '<span style="color:red">⬇️</span>'
+        return '<span style="color:blue">➡️</span>'
+
+    # Seskupení dat pro každého hráče
+    hraci_data = []
+    for jmeno, group in df_results.groupby('Jméno'):
+        body_seznam = group['Body'].tolist()
+        prumer = round(sum(body_seznam) / len(body_seznam), 1)
+        forma = get_forma(body_seznam)
+        
+        hraci_data.append({
+            "Jméno": jmeno,
+            "Celkem": sum(body_seznam),
+            "Počet": len(body_seznam),
+            "Průměr": prumer,
+            "Forma": forma
+        })
     
-    df_to_show = df_final.drop(columns=['ID'])
-    df_to_show = df_to_show.sort_values(by='Body', ascending=False).reset_index(drop=True)
-    df_to_show.insert(0, 'Pořadí', range(1, len(df_to_show) + 1))
+    df_final = pd.DataFrame(hraci_data)
+    
+    # Příprava pro zobrazení (seřazení)
+    df_celkem = df_final.sort_values(by='Celkem', ascending=False).reset_index(drop=True)
+    df_prumer = df_final.sort_values(by='Průměr', ascending=False).reset_index(drop=True)
 
     # 4. Výstup
     col1, col2, col3 = st.columns([1, 4, 2])
