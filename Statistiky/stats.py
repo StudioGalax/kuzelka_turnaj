@@ -16,53 +16,48 @@ if os.path.exists(DATA_FOLDER):
                 data = json.load(f)
                 for team in data.get('teams', {}).values():
                     for p_name, scores in team.items():
-                        # scores je seznam [hod1, hod2, hod3, hod4]
                         all_stats.append({"Jméno": p_name.strip(), "Body": scores})
 
 if all_stats:
     df_raw = pd.DataFrame(all_stats)
     
-    # Seskupíme všechna data hráče dohromady (pokud hrál více turnajů)
-    def aggregate_player(group):
-        # Spojíme všechny seznamy náhozů do jedné dlouhé řady
-        all_scores = [score for sublist in group['Body'] for score in sublist]
-        return pd.Series({"Všechny_náhozy": all_scores})
-
-    df_grouped = df_raw.groupby('Jméno').apply(aggregate_player).reset_index()
-
     # 2. LOGIKA STATISTIK
-    def get_stats(row):
-        body = row['Všechny_náhozy']
-        # Pořadí kol 1-4 se opakuje (modulo 4)
-        nazozy_po_kolech = pd.DataFrame({'kolo': [(i % 4) + 1 for i in range(len(body))], 'hod': body})
-        avg_per_kolo = nazozy_po_kolech.groupby('kolo')['hod'].mean()
+    def process_player(group):
+        # Spojíme všechny náhozy všech turnajů do jednoho seznamu
+        all_body = [s for sublist in group['Body'] for s in sublist]
         
-        best_kolo_idx = avg_per_kolo.idxmax()
-        best_kolo_val = avg_per_kolo.max()
+        # Logika pro "Best kolo" (1-4) podle nejvyššího průměru v daném kole
+        # Vytvoříme pomocný dataframe: řádek = jeden nához, sloupec = číslo kola (1-4)
+        nazozy = pd.DataFrame({'kolo': [(i % 4) + 1 for i in range(len(all_body))], 'hod': all_body})
+        avg_per_kolo = nazozy.groupby('kolo')['hod'].mean()
+        best_kolo = avg_per_kolo.idxmax()
         
-        # Forma (poslední 3 náhozy vs průměr)
+        # Forma
         forma = "➡️"
-        if len(body) >= 3:
-            rozdil = body[-1] - (sum(body[-3:-1]) / 2)
+        if len(all_body) >= 3:
+            rozdil = all_body[-1] - (sum(all_body[-3:-1]) / 2)
             if rozdil >= 10: forma = "⬆️"
             elif rozdil <= -10: forma = "⬇️"
             
         return pd.Series({
-            "Celkem": sum(body),
-            "Průměr": sum(body) / len(body),
-            "Best kolo": f"{best_kolo_idx}. kolo",
+            "Celkem": sum(all_body),
+            "Průměr": sum(all_body) / len(all_body),
+            "Best kolo": f"{best_kolo}. kolo",
             "Forma": forma
         })
 
-    df_final = df_grouped.apply(get_stats, axis=1).reset_index()
-    df_final['Jméno'] = df_grouped['Jméno']
+    df_final = df_raw.groupby('Jméno').apply(process_player).reset_index()
 
     # 3. VÝSTUP (ČISTÁ TABULKA)
     def display_table(df, sort_by):
         df = df.sort_values(by=sort_by, ascending=False).reset_index(drop=True)
         df.insert(0, 'Pořadí', range(1, len(df) + 1))
-        df['Průměr'] = df['Průměr'].map('{:.1f}'.format)
-        # hide_index=True konečně odstraní ty nuly!
+        
+        # Bezpečné formátování průměru (pouze pokud sloupec existuje)
+        if 'Průměr' in df.columns:
+            df['Průměr'] = df['Průměr'].map('{:.1f}'.format)
+            
+        # hide_index=True odstraní ten sloupec 0, 1, 2...
         st.dataframe(df, hide_index=True, use_container_width=True)
 
     tab1, tab2 = st.tabs(["Celkové pořadí", "Pořadí dle průměru"])
