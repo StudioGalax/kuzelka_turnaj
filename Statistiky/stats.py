@@ -14,7 +14,8 @@ if os.path.exists(DATA_FOLDER):
     for file_name in os.listdir(DATA_FOLDER):
         if file_name.endswith('.json'):
             # Vytáhne číslo kola z názvu souboru (např. 1 z "turnaj_1.json")
-            kolo = ''.join(filter(str.isdigit, file_name)) or "1"
+            kolo = "".join([c for c in file_name if c.isdigit()])
+            if not kolo: kolo = "1" # Záložní hodnota
             with open(os.path.join(DATA_FOLDER, file_name), 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 for team in data.get('teams', {}).values():
@@ -48,14 +49,17 @@ if all_stats:
         df = df.sort_values(by=sort_by, ascending=False).reset_index(drop=True)
         df.insert(0, 'Pořadí', range(1, len(df) + 1))
         
-        # Formátování sloupce Průměr pouze pokud v tabulce existuje
         if 'Průměr' in df.columns:
             df['Průměr'] = df['Průměr'].map('{:.1f}'.format)
         
-        def zebra(row):
-            return ['background-color: #f0f2f6'] * len(row) if row.name % 2 != 0 else ['background-color: white'] * len(row)
-        
-        return df.style.apply(zebra, axis=1).to_html(index=False, escape=False, justify='center')
+        # TADY je ta změna: použijeme st.dataframe místo st.write s HTML
+        # hide_index="index" skryje ty 0, 1, 2...
+        st.dataframe(
+            df, 
+            column_config={"Forma": st.column_config.TextColumn("Forma")},
+            hide_index=True,
+            use_container_width=True
+        )
 
     tab1, tab2, tab3 = st.tabs(["Celkové pořadí", "Pořadí dle průměru", "Archiv turnajů"])
     
