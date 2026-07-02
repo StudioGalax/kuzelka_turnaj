@@ -74,6 +74,40 @@ def display_top_10_hody(df_raw):
     """
     with st.container(height=400):
         st.markdown(html, unsafe_allow_html=True)
+
+def display_single_tournament(df_raw):
+    # Vybereme seznam turnajů (názvy souborů)
+    turnaje = sorted(df_raw['Turnaj'].unique())
+    vybrany_turnaj = st.selectbox("Vyber turnaj k zobrazení:", turnaje)
+    
+    # Vyfiltrujeme data pro vybraný turnaj
+    df_turnaj = df_raw[df_raw['Turnaj'] == vybrany_turnaj].copy()
+    
+    # Převedeme hody na čitelnou tabulku (Jméno, Body)
+    df_display = df_turnaj[['Jméno', 'Body']].sort_values(by='Body', ascending=False)
+    df_display['Pořadí'] = df_display['Body'].rank(method='min', ascending=False).astype(int)
+    df_display = df_display[['Pořadí', 'Jméno', 'Body']]
+    
+    # CSS a HTML tabulka (stejná jako u tvých ostatních tabulek)
+    html = """
+    <style>
+        .custom-table { width: 100%; border-collapse: collapse; font-family: sans-serif; }
+        .custom-table th, .custom-table td { padding: 10px; border-bottom: 1px solid #ddd; text-align: center; }
+        .custom-table td:nth-child(2) { text-align: left; }
+        .custom-table th { background-color: #f9f9f9; }
+        .custom-table tr:nth-of-type(even) { background-color: #f2f2f2; }
+    </style>
+    <table class="custom-table">
+        <thead><tr><th>Pořadí</th><th>Jméno</th><th>Celkem bodů</th></tr></thead>
+        <tbody>""" + "".join([
+            f"<tr><td>{row['Pořadí']}</td><td>{row['Jméno']}</td><td>{row['Body']}</td></tr>" 
+            for _, row in df_display.iterrows()
+        ]) + """</tbody>
+    </table>
+    """
+    with st.container(height=400):
+        st.markdown(html, unsafe_allow_html=True)
+
 # --- HLAVNÍ LOGIKA ---
 DATA_FOLDER = 'Historie_turnaju_json'
 all_stats = []
@@ -128,12 +162,14 @@ if all_stats:
     col1, col2, col3 = st.columns([1, 6, 1])
     with col2:
         # ZDE PŘIDÁVÁME TŘETÍ TAB
-        tab1, tab2, tab3 = st.tabs(["Celkové pořadí", "Pořadí dle průměru", "Top 10 náhozů"])
+        tab1, tab2, tab3, tab4 = st.tabs(["Celkové pořadí", "Pořadí dle průměru", "Top 10 náhozů", "Jeden turnaj"])
         with tab1:
             display_table(df_final, 'Celkem', ['Jméno', 'Celkem', 'Best kolo', 'Forma'])
         with tab2:
             display_table(df_final, 'Průměr na hod', ['Jméno', 'Průměr na hod', 'Best kolo', 'Forma'])
         with tab3:
             display_top_10_hody(df_raw)
+        with tab4:
+            display_single_tournament(df_raw)
 else:
     st.info("Žádná data k zobrazení.")
