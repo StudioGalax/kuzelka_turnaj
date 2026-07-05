@@ -57,8 +57,11 @@ def display_table(df, sort_by, columns):
 
 # --- FUNKCE PRO TOP 10 NÁHOZŮ ---
 def display_top_10_filtered(df_raw, limit):
-    # Vyfiltrujeme pouze záznamy s daným limitem hodu
-    df_filtered = df_raw[df_raw['Pocet_hodu'] == limit].copy()
+    # Důležité: používáme klíč 'limit_hodu', který jsme uložili v kroku 1
+    df_filtered = df_raw[df_raw['limit_hodu'] == limit].copy()
+    
+    if df_filtered.empty:
+        return "<p style='text-align:center;'>Zatím nejsou data</p>"
     
     all_throws = []
     for _, row in df_filtered.iterrows():
@@ -66,9 +69,6 @@ def display_top_10_filtered(df_raw, limit):
             all_throws.append({"Jméno": row['Jméno'], "Body": throw})
     
     df_throws = pd.DataFrame(all_throws)
-    if df_throws.empty:
-        return "<p>Žádná data</p>"
-        
     df_throws['Pořadí'] = df_throws['Body'].rank(method='min', ascending=False).astype(int)
     top_10 = df_throws.sort_values(by='Body', ascending=False).head(10).reset_index(drop=True)
     
@@ -131,7 +131,7 @@ if os.path.exists(DATA_FOLDER):
                             "Body": sum(scores),
                             "Surove_Body": scores,
                             "Turnaj": file_name,
-                            "Pocet_hodu_v_kole": limit_hodu  # Toto je 10 nebo 15
+                            "limit_hodu": limit_hodu # Tady ukládáme čistý limit (10 nebo 15)
                         })
 
 if all_stats:
@@ -156,8 +156,8 @@ if all_stats:
             posledni_turnaj = group.iloc[-1]
             predposledni_turnaj = group.iloc[-2]
             
-            p1 = posledni_turnaj['Body'] / (len(posledni_turnaj['Surove_Body']) * posledni_turnaj['Pocet_hodu_v_kole'])
-            p2 = predposledni_turnaj['Body'] / (len(predposledni_turnaj['Surove_Body']) * predposledni_turnaj['Pocet_hodu_v_kole'])
+            p1 = posledni_turnaj['Body'] / (len(posledni_turnaj['Surove_Body']) * posledni_turnaj['limit_hodu'])
+            p2 = predposledni_turnaj['Body'] / (len(predposledni_turnaj['Surove_Body']) * predposledni_turnaj['limit_hodu'])
             
             rozdil = p1 - p2
             if rozdil >= 0.5: forma = "▲"
