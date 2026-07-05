@@ -34,7 +34,9 @@ with st.sidebar:
 def display_table(df, sort_by, columns):
     df = df.sort_values(by=sort_by, ascending=False).copy()
     df['Pořadí'] = df[sort_by].rank(method='min', ascending=False).astype(int)
-    cols_to_show = ['Pořadí'] + columns
+    
+    # Zde zajistíme, aby se zobrazily jen ty sloupce, které skutečně existují
+    cols_to_show = ['Pořadí'] + [c for c in columns if c in df.columns]
     df_show = df[cols_to_show].copy()
     
     for col in df_show.columns:
@@ -160,7 +162,7 @@ if all_stats:
             "Forma": "▬"
         })
 
-    df_final = df_raw.groupby('Jméno').apply(process_player).reset_index()
+    df_final = df_raw.groupby('Jméno').apply(process_player, include_groups=False).reset_index()
 
     st.title("📊 Statistiky kuželkářského turnaje")
     _, col2, _ = st.columns([1, 6, 1])
