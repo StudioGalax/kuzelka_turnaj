@@ -56,30 +56,36 @@ def display_table(df, sort_by, columns):
         st.markdown(html, unsafe_allow_html=True)
 
 # --- FUNKCE PRO TOP 10 NÁHOZŮ ---
-def display_top_10_hody(df_raw):
+def display_top_10_filtered(df_raw, limit):
+    # Vyfiltrujeme pouze záznamy s daným limitem hodu
+    df_filtered = df_raw[df_raw['Pocet_hodu'] == limit].copy()
+    
     all_throws = []
-    for _, row in df_raw.iterrows():
+    for _, row in df_filtered.iterrows():
         for throw in row['Surove_Body']:
             all_throws.append({"Jméno": row['Jméno'], "Body": throw})
+    
     df_throws = pd.DataFrame(all_throws)
+    if df_throws.empty:
+        return "<p>Žádná data</p>"
+        
     df_throws['Pořadí'] = df_throws['Body'].rank(method='min', ascending=False).astype(int)
     top_10 = df_throws.sort_values(by='Body', ascending=False).head(10).reset_index(drop=True)
     
+    # HTML tabulka (stejná jako předtím)
     html = """
     <style>
-        .custom-table { width: 100%; border-collapse: collapse; font-family: sans-serif; }
-        .custom-table th, .custom-table td { padding: 10px; border-bottom: 1px solid #ddd; text-align: center; }
+        .custom-table { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 0.9em; }
+        .custom-table th, .custom-table td { padding: 8px; border-bottom: 1px solid #ddd; text-align: center; }
         .custom-table td:nth-child(2) { text-align: left; }
         .custom-table th { background-color: #f9f9f9; }
-        .custom-table tr:nth-of-type(even) { background-color: #f2f2f2; }
     </style>
     <table class="custom-table">
-        <thead><tr><th>Pořadí</th><th>Jméno</th><th>Body</th></tr></thead>
+        <thead><tr><th>Poř.</th><th>Jméno</th><th>Body</th></tr></thead>
         <tbody>""" + "".join([f"<tr><td>{row['Pořadí']}</td><td>{row['Jméno']}</td><td>{row['Body']}</td></tr>" for _, row in top_10.iterrows()]) + """</tbody>
     </table>
     """
-    # Toto je ta změna:
-    components.html(html, height=400, scrolling=True)
+    return html
 
 # --- FUNKCE PRO JEDEN TURNAJ ---
 def display_single_tournament(df_raw):
