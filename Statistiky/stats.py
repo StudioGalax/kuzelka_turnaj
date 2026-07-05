@@ -5,6 +5,8 @@ import pandas as pd
 import json
 import os
 import streamlit.components.v1 as components
+import math
+import numpy as np
 
 # --- KONFIGURACE - DEFINOVAT HNED NA ZAČÁTKU ---
 DATA_FOLDER = 'Historie_turnaju_json'
@@ -120,6 +122,10 @@ def display_single_tournament(df_raw):
     # Použijeme stejný "těžký kalibr" komponentu
     components.html(html, height=400, scrolling=True)
 
+def vypocitat_pokerove_body(body, umisteni, pocet_hracu):
+    # tvůj vzorec: Body = sqrt(n) * (v / p^3)
+    return math.sqrt(pocet_hracu) * (body / (umisteni ** 3))
+
 # --- HLAVNÍ LOGIKA ---
 all_stats = []
 if os.path.exists(DATA_FOLDER):
@@ -128,45 +134,71 @@ if os.path.exists(DATA_FOLDER):
             with open(os.path.join(DATA_FOLDER, file_name), 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 limit_hodu = data.get("limit_hodu", 15)
+                
+                # Příprava na pokerové bodování (seřadíme hráče v turnaji)
+                turnaj_hraci = []
                 for team in data.get('teams', {}).values():
                     for p_name, scores in team.items():
-                        all_stats.append({
-                            "Jméno": p_name.strip(),
-                            "Body": sum(scores),
-                            "Surove_Body": scores,
-                            "Turnaj": file_name,
-                            "limit_hodu": limit_hodu # Tady ukládáme čistý limit (10 nebo 15)
-                        })
+                        turnaj_hraci.append({"Jméno": p_name.strip(), "Body": sum(scores), "Surove_Body": scores})
+                
+                turnaj_hraci.sort(key=lambda x: x['Body'], reverse=True)
+                
+                # Výpočet bodů pro každého v turnaji
+                pocet_hracu = len(turnaj_hraci)
+                for idx, hrac in enumerate(turnaj_hraci):
+                    umisteni = idx + 1
+                    all_stats.append({
+                        "Jméno": hrac['Jméno'],
+                        "Body": hrac['Body'],
+                        "Ligove_Body": vypocitat_pokerove_body(hrac['Body'], umisteni, pocet_hracu),
+                        "Surove_Body": hrac['Surove_Body'],
+                        "Turnaj": file_name,
+                        "limit_hodu": limit_hodu
+                    })
 
 if all_stats:
     df_raw = pd.DataFrame(all_stats)
     
-    # Výpočet statistik s novou férovou logikou
     def process_player(group):
-        # 'group' obsahuje řádky ze všech turnajů daného hráče.
-        # Každý řádek má 'Surove_Body' (seznam) a 'limit_hodu' (číslo 10 nebo 15).
-    
-        celkem_bodů = 0
-        celkem_hodů = 0
-    
-        for _, row in group.iterrows():
-            body_turnaje = row['Surove_Body']
-            limit = row['limit_hodu']
+        vsechny_hody = [h for sublist in group['Surove_Body'] for h in sublist]
+        celkem_hodů = sum(len(row['Surove_Body']) * row['limit_hodu'] for _, row in group.iterrows())
+        prumer = group['Body'].sum() / celkem_hodů if celkem_hodů > 0 else 0
         
-            celkem_bodů += sum(body_turnaje)
-            # Počet hodů = počet prvků v seznamu * limit hodů na prvek
-            celkem_hodů += len(body_turnaje) * limit
-    
-        prumer_na_hod = celkem_bodů / celkem_hodů if celkem_hodů > 0 else 0
-    
+        # Bonusy
+        odchylka = np.std(vsechny_hody) if len(vsechny_hody) > 0 else 0
+        vyrovnanost_bonus = max(0, (50 - odchylka) / 20) # Koření
+        
+        skokan_bonus = 0
+        if len(group) >= 2:
+            s = group.sort_values('Turnaj')
+            posledni = s.iloc[-1]['Body'] / (len(s.iloc[-1]['Surove_Body']) * s.iloc[-1]['limit_hodu'])
+            predchozi = s.iloc[-2]['Body'] / (len(s.iloc[-2]['Surove_Body']) * s.iloc[-2]['limit_hodu'])
+            skokan_bonus = max(0, (posledni - predchozi) * 2)
+            
         return pd.Series({
             "Turnajů": len(group),
-            "Celkem bodů": celkem_bodů,
-            "Průměr na hod": prumer_na_hod,
-            "Forma": "▬"
+            "Celkem bodů": group['Body'].sum(),
+            "Liga Body": group['Ligove_Body'].sum() + vyrovnanost_bonus + skokan_bonus,
+            "Průměr na hod": prumer,
+            "Forma": "▲" if skokan_bonus > 0.5 else "▬"
         })
 
     df_final = df_raw.groupby('Jméno').apply(process_player, include_groups=False).reset_index()
+
+    # --- ZOBRAZENÍ DVOU LIG ---
+    st.title("📊 Statistiky kuželkářského turnaje")
+    PRUH_LIGY = 4.0
+    df_master = df_final[df_final['Průměr na hod'] >= PRUH_LIGY].copy()
+    df_challenge = df_final[df_final['Průměr na hod'] < PRUH_LIGY].copy()
+
+    with st.tabs(["Celkové pořadí", "Top 10", "Detail turnaje"])[0]:
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("### 🏆 Master Liga")
+            display_table(df_master, 'Liga Body', ['Jméno', 'Liga Body', 'Průměr na hod'])
+        with col2:
+            st.markdown("### 🥈 Challenge Liga")
+            display_table(df_challenge, 'Liga Body', ['Jméno', 'Liga Body', 'Průměr na hod'])
 
     st.title("📊 Statistiky kuželkářského turnaje")
     _, col2, _ = st.columns([1, 6, 1])
