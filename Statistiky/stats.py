@@ -39,7 +39,8 @@ def display_table(df, sort_by, columns):
     st.markdown(html, unsafe_allow_html=True)
 
 def vypocitat_pokerove_body(body, umisteni, pocet_hracu):
-    return math.sqrt(pocet_hracu) * (body / (umisteni ** 3))
+    # Změň ** 3 na ** 1.5 (nebo ** 2, pokud chceš střední cestu)
+    return math.sqrt(pocet_hracu) * (body / (umisteni ** 1.5))
 
 def display_top_10_filtered(df_raw, limit):
     df_filtered = df_raw[df_raw['limit_hodu'] == limit].copy()
