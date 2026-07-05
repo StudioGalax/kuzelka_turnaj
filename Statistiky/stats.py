@@ -141,19 +141,23 @@ if all_stats:
     
     # Výpočet statistik s novou férovou logikou
     def process_player(group):
-        # Všechny hody hráče napříč turnaji
+        # 1. Získáme seznam všech hodů napříč všemi turnaji hráče
         vsechny_hody = [h for sublist in group['Surove_Body'] for h in sublist]
-        celkem_bodů = sum(vsechny_hody)
-        pocet_turnaju = len(group)
     
-        # Průměr na JEDEN HOD (férové pro 10 i 15 hodů)
-        prumer_na_hod = celkem_bodů / len(vsechny_hody) if len(vsechny_hody) > 0 else 0
+        # 2. Celkový počet bodů (suma všech hodů)
+        celkem_bodů = sum(vsechny_hody)
+    
+        # 3. Celkový počet hodů (počet prvků v seznamu)
+        celkem_hodů = len(vsechny_hody)
+    
+        # 4. Samotný výpočet (tady je ten klíčový rozdíl)
+        prumer_na_hod = celkem_bodů / celkem_hodů if celkem_hodů > 0 else 0
     
         return pd.Series({
-            "Turnajů": pocet_turnaju,
+            "Turnajů": len(group),
             "Celkem bodů": celkem_bodů,
             "Průměr na hod": prumer_na_hod,
-            "Forma": "▬" # Můžeš doplnit logiku formy
+            "Forma": "▬"
         })
 
     df_final = df_raw.groupby('Jméno').apply(process_player).reset_index()
