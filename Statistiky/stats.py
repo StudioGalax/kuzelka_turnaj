@@ -176,18 +176,22 @@ if all_stats:
     _, col2, _ = st.columns([1, 6, 1])
     with col2:
         tab1, tab2, tab3, tab4 = st.tabs(["Celkové pořadí", "Pořadí dle průměru", "Top 10 náhozů", "Jeden turnaj"])
-        with tab1: display_table(df_final, 'Celkem', ['Jméno', 'Celkem', 'Best kolo', 'Forma'])
-        with tab2: display_table(df_final, 'Průměr na hod', ['Jméno', 'Průměr na hod', 'Best kolo', 'Forma'])
+        
+        # Opravili jsme názvy sloupců, podle kterých se řadí ('Celkem bodů' místo 'Celkem')
+        with tab1:
+            display_table(df_final, 'Celkem bodů', ['Jméno', 'Turnajů', 'Celkem bodů', 'Průměr na hod', 'Forma'])
+        with tab2:
+            display_table(df_final, 'Průměr na hod', ['Jméno', 'Turnajů', 'Celkem bodů', 'Průměr na hod', 'Forma'])
         with tab3:
+            # Tady využijeme tvůj nový kód pro dvě tabulky vedle sebe
             col1, col2 = st.columns(2)
             with col1:
-                st.markdown("### 🎯 Rekordy (10 hodů)")
-                html_10 = display_top_10_filtered(df_raw, limit=10)
-                components.html(html_10, height=400, scrolling=True)
+                st.markdown("<h3 style='text-align: center;'>🎯 10 hodů</h3>", unsafe_allow_html=True)
+                components.html(display_top_10_filtered(df_raw, 10), height=400, scrolling=True)
             with col2:
-                st.markdown("### 🎯 Rekordy (15 hodů)")
-                html_15 = display_top_10_filtered(df_raw, limit=15)
-                components.html(html_15, height=400, scrolling=True)
-        with tab4: display_single_tournament(df_raw)
+                st.markdown("<h3 style='text-align: center;'>🎯 15 hodů</h3>", unsafe_allow_html=True)
+                components.html(display_top_10_filtered(df_raw, 15), height=400, scrolling=True)
+        with tab4:
+            display_single_tournament(df_raw)
 else:
     st.info("Žádná data k zobrazení.")
