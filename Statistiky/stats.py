@@ -11,26 +11,24 @@ DATA_FOLDER = 'Historie_turnaju_json'
 # --- FUNKCE ---
 def display_table(df, sort_by, columns):
     if df.empty: return
+    # Seřadit a přidat Pořadí
     df = df.sort_values(by=sort_by, ascending=False).copy()
     df['Pořadí'] = df[sort_by].rank(method='min', ascending=False).astype(int)
     
-    # Vybereme jen sloupce, které existují
+    # Vybrat jen existující sloupce
     cols_to_show = ['Pořadí'] + [c for c in columns if c in df.columns]
     df_show = df[cols_to_show].copy()
     
-    # Formátování
-    for col in df_show.columns:
-        if col == 'Liga Body':
-            df_show[col] = df_show[col].apply(lambda x: f"{x:.1f}")
-        elif 'Průměr' in col:
-            df_show[col] = df_show[col].apply(lambda x: f"{x:.2f}")
-
-    html = """<style>.custom-table { width: 100%; border-collapse: collapse; font-family: sans-serif; }
-        .custom-table th, .custom-table td { padding: 8px; border-bottom: 1px solid #ddd; text-align: center; }
-        .custom-table th { background-color: #f9f9f9; }</style>
-        <table class="custom-table"><thead><tr>""" + "".join([f"<th>{col}</th>" for col in df_show.columns]) + """</tr></thead>
-        <tbody>""" + "".join(["<tr>" + "".join([f"<td>{val}</td>" for val in row]) + "</tr>" for _, row in df_show.iterrows()]) + """</tbody></table>"""
-    st.markdown(html, unsafe_allow_html=True)
+    # Zobrazení pomocí nativní tabulky
+    st.dataframe(
+        df_show,
+        hide_index=True,
+        use_container_width=True,
+        column_config={
+            "Liga Body": st.column_config.NumberColumn(format="%.1f"),
+            "Průměr na hod": st.column_config.NumberColumn(format="%.2f")
+        }
+    )
 
 def vypocitat_pokerove_body(body, umisteni, pocet_hracu):
     return math.sqrt(pocet_hracu) * (body / math.log(umisteni + 1, 2))
