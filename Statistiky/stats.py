@@ -39,8 +39,14 @@ def display_table(df, sort_by, columns):
     st.markdown(html, unsafe_allow_html=True)
 
 def vypocitat_pokerove_body(body, umisteni, pocet_hracu):
-    # Změň ** 3 na ** 1.5 (nebo ** 2, pokud chceš střední cestu)
-    return math.sqrt(pocet_hracu) * (body / (umisteni ** 1.5))
+    # Logaritmické bodování:
+    # 1. Část: Bonus za velikost turnaje (sqrt(n))
+    # 2. Část: Relativní síla výkonu (body)
+    # 3. Část: Inverzní pořadí (čím lepší pořadí, tím vyšší hodnota)
+    
+    # Použijeme logaritmus pro vyhlazení rozdílů mezi místy
+    # +1 v logaritmu zajistí, že log(1) nebude 0
+    return math.sqrt(pocet_hracu) * (body / math.log(umisteni + 1, 2))
 
 def display_top_10_filtered(df_raw, limit):
     df_filtered = df_raw[df_raw['limit_hodu'] == limit].copy()
