@@ -11,25 +11,24 @@ DATA_FOLDER = 'Historie_turnaju_json'
 # --- FUNKCE ---
 def display_table(df, sort_by, columns):
     if df.empty: return
+    # Seřadíme, aby shody byly vedle sebe
     df = df.sort_values(by=sort_by, ascending=False).copy()
+    
+    # Použijeme method='min', což zajistí, že při shodě budou mít stejné pořadí
+    # Pokud chceš '1, 1, 3', nechej 'min'. 
+    # Pokud chceš '1, 1, 2', změň na 'dense'.
     df['Pořadí'] = df[sort_by].rank(method='min', ascending=False).astype(int)
     
-    # Vybereme jen sloupce, které existují
     cols_to_show = ['Pořadí'] + [c for c in columns if c in df.columns]
     df_show = df[cols_to_show].copy()
     
-    # TADY JE TA OPRAVA: Dělení deseti pro Liga Body
+    # Formátování čísel
     if 'Liga Body' in df_show.columns:
-        df_show['Liga Body'] = df_show['Liga Body'] / 10
-    
-    # Formátování
-    for col in df_show.columns:
-        if col == 'Liga Body':
-            df_show[col] = df_show[col].apply(lambda x: f"{x:.1f}")
-        elif 'Průměr' in col:
-            df_show[col] = df_show[col].apply(lambda x: f"{x:.2f}")
+        df_show['Liga Body'] = df_show['Liga Body'].apply(lambda x: f"{x:.1f}")
+    if 'Průměr na hod' in df_show.columns:
+        df_show['Průměr na hod'] = df_show['Průměr na hod'].apply(lambda x: f"{x:.2f}")
 
-    # Použití st.dataframe místo HTML hacků (aby se nezobrazoval textový kód)
+    # Použijeme st.dataframe, který je pro Streamlit nejpřirozenější
     st.dataframe(
         df_show,
         hide_index=True,
