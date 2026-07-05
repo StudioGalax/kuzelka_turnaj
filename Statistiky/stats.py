@@ -73,12 +73,43 @@ if all_stats:
     def process_player(group):
         vsechny_hody = [h for sublist in group['Surove_Body'] for h in sublist]
         celkem_hodů = sum(len(row['Surove_Body']) * row['limit_hodu'] for _, row in group.iterrows())
+        prumer = group['Body'].sum() / celkem_hodů if celkem_hodů > 0 else 0
+        
+        # Bonusy
         odchylka = np.std(vsechny_hody) if len(vsechny_hody) > 0 else 0
+        vyrovnanost_bonus = max(0, (50 - odchylka) / 20) 
+        
         skokan = 0
         if len(group) >= 2:
             s = group.sort_values('Turnaj')
             skokan = max(0, (s.iloc[-1]['Body'] / (len(s.iloc[-1]['Surove_Body']) * s.iloc[-1]['limit_hodu']) - s.iloc[-2]['Body'] / (len(s.iloc[-2]['Surove_Body']) * s.iloc[-2]['limit_hodu'])) * 2)
-        return pd.Series({"Liga Body": group['Ligove_Body'].sum() + max(0, (50-odchylka)/20) + skokan, "Průměr na hod": group['Body'].sum() / celkem_hodů if celkem_hodů > 0 else 0})
+        
+        # TADY JE TA ZMĚNA: Průměr z ligových bodů za turnaj
+        prumerne_liga_body = (group['Ligove_Body'].sum() + vyrovnanost_bonus + skokan) / len(group)
+        
+        return pd.Series({
+            "Turnajů": len(group),
+            "Liga Body": prumerne_liga_body, 
+            "Průměr na hod": prumer,
+            "Forma": "▲" if skokan > 0.5 else "▬"
+        })
+
+# --- ÚPRAVA V DISPLAY_TABLE PRO HEZKÝ FORMÁT ---
+def display_table(df, sort_by, columns):
+    if df.empty: return
+    df = df.sort_values(by=sort_by, ascending=False).copy()
+    df['Pořadí'] = df[sort_by].rank(method='min', ascending=False).astype(int)
+    
+    cols_to_show = ['Pořadí'] + [c for c in columns if c in df.columns]
+    df_show = df[cols_to_show].copy()
+    
+    # Zaokrouhlení pro hezkou tabulku
+    for col in df_show.columns:
+        if col == 'Liga Body':
+            df_show[col] = df_show[col].apply(lambda x: f"{x:.1f}")
+        elif 'Průměr' in col: 
+            df_show[col] = df_show[col].apply(lambda x: f"{x:.2f}")
+
 
     df_final = df_raw.groupby('Jméno').apply(process_player, include_groups=False).reset_index()
 
