@@ -11,23 +11,29 @@ DATA_FOLDER = 'Historie_turnaju_json'
 # --- FUNKCE ---
 def display_table(df, sort_by, columns):
     if df.empty: return
-    # Seřadit a přidat Pořadí
     df = df.sort_values(by=sort_by, ascending=False).copy()
     df['Pořadí'] = df[sort_by].rank(method='min', ascending=False).astype(int)
     
-    # Vybrat jen existující sloupce
+    # Vybereme jen sloupce, které existují
     cols_to_show = ['Pořadí'] + [c for c in columns if c in df.columns]
     df_show = df[cols_to_show].copy()
     
-    # Zobrazení pomocí nativní tabulky
+    # TADY JE TA OPRAVA: Dělení deseti pro Liga Body
+    if 'Liga Body' in df_show.columns:
+        df_show['Liga Body'] = df_show['Liga Body'] / 10
+    
+    # Formátování
+    for col in df_show.columns:
+        if col == 'Liga Body':
+            df_show[col] = df_show[col].apply(lambda x: f"{x:.1f}")
+        elif 'Průměr' in col:
+            df_show[col] = df_show[col].apply(lambda x: f"{x:.2f}")
+
+    # Použití st.dataframe místo HTML hacků (aby se nezobrazoval textový kód)
     st.dataframe(
         df_show,
         hide_index=True,
-        use_container_width=True,
-        column_config={
-            "Liga Body": st.column_config.NumberColumn(format="%.1f"),
-            "Průměr na hod": st.column_config.NumberColumn(format="%.2f")
-        }
+        use_container_width=True
     )
 
 def vypocitat_pokerove_body(body, umisteni, pocet_hracu):
