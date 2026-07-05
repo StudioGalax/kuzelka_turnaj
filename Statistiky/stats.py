@@ -1,3 +1,5 @@
+from tokenize import group
+
 import streamlit as st
 import pandas as pd
 import json
@@ -139,35 +141,19 @@ if all_stats:
     
     # Výpočet statistik s novou férovou logikou
     def process_player(group):
-        # Spojíme všechny hody všech turnajů daného hráče
-        vsechny_hody = [s for sublist in group['Surove_Body'] for s in sublist]
+        # Všechny hody hráče napříč turnaji
+        vsechny_hody = [h for sublist in group['Surove_Body'] for h in sublist]
         celkem_bodů = sum(vsechny_hody)
-        celkem_hodů = len(vsechny_hody)
-        pocet_turnajů = len(group)
-        
-        # Průměr na 1 hod (toto je nyní tvůj hlavní ukazatel výkonnosti)
-        prumer = celkem_bodů / celkem_hodů if celkem_hodů > 0 else 0
-        
-        # Forma (zde porovnáváme průměr posledního turnaje vs. předposledního)
-        forma = "▬"
-        if len(group) >= 2:
-            group = group.sort_values('Turnaj')
-            # Průměr na hod v posledním turnaji
-            posledni_turnaj = group.iloc[-1]
-            predposledni_turnaj = group.iloc[-2]
-            
-            p1 = posledni_turnaj['Body'] / (len(posledni_turnaj['Surove_Body']) * posledni_turnaj['limit_hodu'])
-            p2 = predposledni_turnaj['Body'] / (len(predposledni_turnaj['Surove_Body']) * predposledni_turnaj['limit_hodu'])
-            
-            rozdil = p1 - p2
-            if rozdil >= 0.5: forma = "▲"
-            elif rozdil <= -0.5: forma = "▼"
-            
+        pocet_turnaju = len(group)
+    
+        # Průměr na JEDEN HOD (férové pro 10 i 15 hodů)
+        prumer_na_hod = celkem_bodů / len(vsechny_hody) if len(vsechny_hody) > 0 else 0
+    
         return pd.Series({
-            "Turnajů": pocet_turnajů,
+            "Turnajů": pocet_turnaju,
             "Celkem bodů": celkem_bodů,
-            "Průměr na hod": prumer,
-            "Forma": forma
+            "Průměr na hod": prumer_na_hod,
+            "Forma": "▬" # Můžeš doplnit logiku formy
         })
 
     df_final = df_raw.groupby('Jméno').apply(process_player).reset_index()
