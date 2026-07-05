@@ -12,21 +12,21 @@ DATA_FOLDER = 'Historie_turnaju_json'
 def display_table(df, sort_by, columns):
     if df.empty: return
     
-    # 1. Seřadíme podle 'Liga Body' sestupně, a jako sekundární kritérium dáme 'Průměr na hod'
+    # 1. Seřadíme data podle bodů a průměru (aby ti se shodou byli u sebe)
     df = df.sort_values(by=[sort_by, 'Průměr na hod'], ascending=[False, False]).copy()
     
-    # 2. Vytvoříme 'Pořadí' tak, aby shoda měla stejné číslo
-    # method='min' zajistí: 1, 1, 3 (při shodě na 1. místě)
+    # 2. Vytvoříme pořadí - method='min' přiřadí stejné pořadí při shodě
     df['Pořadí'] = df[sort_by].rank(method='min', ascending=False).astype(int)
     
-    # 3. Vybereme sloupce
+    # 3. Příprava sloupců
     cols_to_show = ['Pořadí'] + [c for c in columns if c in df.columns]
     df_show = df[cols_to_show].copy()
     
-    # 4. Formátování (dělení deseti pro Liga Body, jak jsi chtěl)
+    # 4. Formátování (dělení deseti pro Liga Body)
     if 'Liga Body' in df_show.columns:
         df_show['Liga Body'] = (df_show['Liga Body'] / 10).round(1)
         
+    # 5. Zobrazení
     st.dataframe(
         df_show,
         hide_index=True,
