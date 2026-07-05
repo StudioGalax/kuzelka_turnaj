@@ -131,7 +131,7 @@ if os.path.exists(DATA_FOLDER):
                             "Body": sum(scores),
                             "Surove_Body": scores,
                             "Turnaj": file_name,
-                            "Pocet_hodu": len(scores) * limit_hodu
+                            "Pocet_hodu": limit_hodu
                         })
 
 if all_stats:
@@ -143,7 +143,7 @@ if all_stats:
         nazozy = pd.DataFrame({'kolo': [(i % 4) + 1 for i in range(len(surove_body))], 'hod': surove_body})
         best_kolo = nazozy.groupby('kolo')['hod'].mean().idxmax()
         forma = "▲" if len(body_turnaje) >= 2 and body_turnaje[-1] - body_turnaje[-2] >= 10 else ("▼" if len(body_turnaje) >= 2 and body_turnaje[-1] - body_turnaje[-2] <= -10 else "▬")
-        return pd.Series({"Celkem": sum(body_turnaje), "Průměr na hod": sum(body_turnaje) / sum(group['Pocet_hodu']), "Best kolo": f"{best_kolo}. kolo", "Forma": forma})
+        return pd.Series({"Celkem": sum(body_turnaje), "Průměr na hod": sum(body_turnaje) / len(surove_body), "Best kolo": f"{best_kolo}. kolo", "Forma": forma})
 
     df_final = df_raw.groupby('Jméno').apply(process_player).reset_index()
 
