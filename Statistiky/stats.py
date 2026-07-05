@@ -11,28 +11,30 @@ DATA_FOLDER = 'Historie_turnaju_json'
 # --- FUNKCE ---
 def display_table(df, sort_by, columns):
     if df.empty: return
-    # Seřadíme, aby shody byly vedle sebe
-    df = df.sort_values(by=sort_by, ascending=False).copy()
     
-    # Použijeme method='min', což zajistí, že při shodě budou mít stejné pořadí
-    # Pokud chceš '1, 1, 3', nechej 'min'. 
-    # Pokud chceš '1, 1, 2', změň na 'dense'.
+    # 1. Seřadíme podle 'Liga Body' sestupně, a jako sekundární kritérium dáme 'Průměr na hod'
+    df = df.sort_values(by=[sort_by, 'Průměr na hod'], ascending=[False, False]).copy()
+    
+    # 2. Vytvoříme 'Pořadí' tak, aby shoda měla stejné číslo
+    # method='min' zajistí: 1, 1, 3 (při shodě na 1. místě)
     df['Pořadí'] = df[sort_by].rank(method='min', ascending=False).astype(int)
     
+    # 3. Vybereme sloupce
     cols_to_show = ['Pořadí'] + [c for c in columns if c in df.columns]
     df_show = df[cols_to_show].copy()
     
-    # Formátování čísel
+    # 4. Formátování (dělení deseti pro Liga Body, jak jsi chtěl)
     if 'Liga Body' in df_show.columns:
-        df_show['Liga Body'] = df_show['Liga Body'].apply(lambda x: f"{x:.1f}")
-    if 'Průměr na hod' in df_show.columns:
-        df_show['Průměr na hod'] = df_show['Průměr na hod'].apply(lambda x: f"{x:.2f}")
-
-    # Použijeme st.dataframe, který je pro Streamlit nejpřirozenější
+        df_show['Liga Body'] = (df_show['Liga Body'] / 10).round(1)
+        
     st.dataframe(
         df_show,
         hide_index=True,
-        use_container_width=True
+        use_container_width=True,
+        column_config={
+            "Liga Body": st.column_config.NumberColumn(format="%.1f"),
+            "Průměr na hod": st.column_config.NumberColumn(format="%.2f")
+        }
     )
 
 def vypocitat_pokerove_body(body, umisteni, pocet_hracu):
