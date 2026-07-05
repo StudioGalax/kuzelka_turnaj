@@ -153,7 +153,16 @@ if all_stats:
         tab1, tab2, tab3, tab4 = st.tabs(["Celkové pořadí", "Pořadí dle průměru", "Top 10 náhozů", "Jeden turnaj"])
         with tab1: display_table(df_final, 'Celkem', ['Jméno', 'Celkem', 'Best kolo', 'Forma'])
         with tab2: display_table(df_final, 'Průměr na hod', ['Jméno', 'Průměr na hod', 'Best kolo', 'Forma'])
-        with tab3: display_top_10_hody(df_raw)
+        with tab3:
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown("### 🎯 Rekordy (10 hodů)")
+                html_10 = display_top_10_filtered(df_raw, limit=10)
+                components.html(html_10, height=400, scrolling=True)
+            with col2:
+                st.markdown("### 🎯 Rekordy (15 hodů)")
+                html_15 = display_top_10_filtered(df_raw, limit=15)
+                components.html(html_15, height=400, scrolling=True)
         with tab4: display_single_tournament(df_raw)
 else:
     st.info("Žádná data k zobrazení.")
