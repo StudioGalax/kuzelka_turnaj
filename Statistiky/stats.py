@@ -73,30 +73,24 @@ def display_table(df, sort_by, columns):
     components.html(html_content, height=510)
 
 def get_rekordy(limit):
-    vsechna_kola = []
+    vsechna_data = []
     
-    for _, row in df_raw[df_raw['limit_hodu'] == limit].iterrows():
-        match = re.search(r'\d{4}-\d{2}-\d{2}', row['Turnaj'])
-        datum = match.group(0) if match else "Neznámé"
-        
-        # Ošetření: pokud Surove_Body není seznam, přeskočíme
-        if not isinstance(row['Surove_Body'], list): continue
-            
-        for kolo in row['Surove_Body']:
-            # Ošetření: sčítáme jen pokud je kolo seznam čísel
-            if isinstance(kolo, list):
-                vsechna_kola.append({
-                    "Jméno": row['Jméno'], 
-                    "Rekord": sum(kolo), 
-                    "Datum": datum
+    # Projdeme JSON strukturu
+    for team, hraci in data.get("teams", {}).items():
+        for jmeno, body_list in hraci.items():
+            # body_list je např. [32, 68, 45, 43]
+            for i, body in enumerate(body_list):
+                vsechna_data.append({
+                    "Jméno": jmeno,
+                    "Rekord": body,
+                    "Datum": "Historie" # Tady můžeš doplnit datum z názvu souboru
                 })
     
-    if not vsechna_kola: return pd.DataFrame()
+    if not vsechna_data: return pd.DataFrame(columns=["Jméno", "Max", "Datum"])
     
-    df_rek = pd.DataFrame(vsechna_kola)
-    # Tady bereme Top 10 výkonů z celé historie
+    df_rek = pd.DataFrame(vsechna_data)
+    # Najdeme top 10 výkonů
     df_top10 = df_rek.sort_values('Rekord', ascending=False).head(10)
-    
     return df_top10.rename(columns={'Rekord': 'Max', 'Datum': 'Datum'})
     
 
