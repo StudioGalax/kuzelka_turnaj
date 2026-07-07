@@ -5,6 +5,7 @@ import os
 import math
 import numpy as np
 import streamlit.components.v1 as components
+import re
 
 # --- GLOBÁLNÍ CSS PRO TABULKY (Zebra + Scroll) ---
 st.markdown("""
@@ -70,6 +71,28 @@ def display_table(df, sort_by, columns):
     """
     
     components.html(html_content, height=510)
+
+def get_rekordy(limit):
+    # Pracujeme jen se surovými daty (df_raw)
+    vsechna_kola = []
+    
+    for _, row in df_raw[df_raw['limit_hodu'] == limit].iterrows():
+        match = re.search(r'\d{4}-\d{2}-\d{2}', row['Turnaj'])
+        datum = match.group(0) if match else "Neznámé"
+        
+        for kolo in row['Surove_Body']:
+            vsechna_kola.append({
+                "Jméno": row['Jméno'], 
+                "Rekord": sum(kolo), 
+                "Datum": datum
+            })
+    
+    if not vsechna_kola: return pd.DataFrame()
+    
+    df_rek = pd.DataFrame(vsechna_kola)
+    # Tady hledáme max, ale neovlivňujeme původní df_raw
+    idx = df_rek.groupby('Jméno')['Rekord'].idxmax()
+    return df_rek.loc[idx].sort_values('Rekord', ascending=False).rename(columns={'Rekord': 'Max', 'Datum': 'Datum'})
     
 
 
@@ -109,14 +132,30 @@ if all_stats:
     df_final = df_raw.groupby('Jméno').apply(process_player, include_groups=False).reset_index()
 
     st.title("📊 Statistiky kuželkářského turnaje")
-    
+
+# Tady definujeme záložky
+tab1, tab2 = st.tabs(["📊 Ligová tabulka", "🏆 Top rekordy 10/15"])
+
+with tab1:
+    # Tady tvůj kód pro ligy zůstává netknutý
     PRUH_LIGY = 4.0
     c1, c2 = st.columns(2)
     with c1: 
         st.markdown("### 🏆 Master Liga")
-        display_table(df_final[df_final['Průměr na hod'] >= PRUH_LIGY], 'Liga Body', ['Jméno', 'Liga Body', 'Průměr na hod'])
+        # Používáme tvoji novou funkci s 'Ø/hod'
+        display_table(df_final[df_final['Průměr na hod'] >= PRUH_LIGY], 'Liga Body', ['Jméno', 'Liga Body', 'Ø/hod'])
     with c2: 
         st.markdown("### 🥈 Challenge Liga")
-        display_table(df_final[df_final['Průměr na hod'] < PRUH_LIGY], 'Liga Body', ['Jméno', 'Liga Body', 'Průměr na hod'])
+        display_table(df_final[df_final['Průměr na hod'] < PRUH_LIGY], 'Liga Body', ['Jméno', 'Liga Body', 'Ø/hod'])
+
+with tab2:
+    # Tady se zobrazí rekordy, které nijak neovlivňují ligové body
+    st.markdown("### 🔥 Historické rekordy (10 hodů)")
+    display_table(get_rekordy(10), 'Max', ['Jméno', 'Max', 'Datum'])
+    
+    st.markdown("---")
+    
+    st.markdown("### 🔥 Historické rekordy (15 hodů)")
+    display_table(get_rekordy(15), 'Max', ['Jméno', 'Max', 'Datum'])
 else:
     st.info("Žádná data k zobrazení.")
