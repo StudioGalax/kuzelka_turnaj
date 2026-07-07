@@ -12,25 +12,32 @@ DATA_FOLDER = 'Historie_turnaju_json'
 def display_table(df, sort_by, columns):
     if df.empty: return
     
-    # 1. Seřadíme data podle bodů a průměru (aby ti se shodou byli u sebe)
+    # 1. Seřazení a pořadí
     df = df.sort_values(by=[sort_by, 'Průměr na hod'], ascending=[False, False]).copy()
-    
-    # 2. Vytvoříme pořadí - method='min' přiřadí stejné pořadí při shodě
     df['Pořadí'] = df[sort_by].rank(method='min', ascending=False).astype(int)
     
-    # 3. Příprava sloupců
+    # 2. Příprava sloupců a formátování
     cols_to_show = ['Pořadí'] + [c for c in columns if c in df.columns]
     df_show = df[cols_to_show].copy()
     
-    # 4. Formátování (dělení deseti pro Liga Body)
     if 'Liga Body' in df_show.columns:
         df_show['Liga Body'] = (df_show['Liga Body'] / 10).round(1)
-        
-    # 5. Zobrazení
+
+    # 3. Aplikace zebry pomocí styleru (pandas)
+    # Subset zajistí, že barvíme celý řádek
+    styled_df = df_show.style.set_properties(**{'text-align': 'left'}) \
+        .background_gradient(subset=['Pořadí'], cmap='Blues', vmin=0, vmax=1) \
+        .set_table_styles([{
+            'selector': 'tr:nth-of-type(even)',
+            'props': [('background-color', '#f0f2f6')] # Světle šedá pro zebru
+        }])
+
+    # 4. Zobrazení s fixní výškou pro scroll
     st.dataframe(
-        df_show,
+        styled_df,
         hide_index=True,
         use_container_width=True,
+        height=500, # Zde nastavuješ výšku v pixelech (např. 500px)
         column_config={
             "Liga Body": st.column_config.NumberColumn(format="%.1f"),
             "Průměr na hod": st.column_config.NumberColumn(format="%.2f")
