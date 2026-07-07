@@ -41,8 +41,9 @@ def display_table(df, sort_by, columns):
     if 'Průměr na hod' in df_show.columns:
         df_show['Průměr na hod'] = df_show['Průměr na hod'].round(2)
         
-    # Přejmenování sloupce Pořadí na prázdný řetězec, aby nebyl široký
-    df_show = df_show.rename(columns={'Pořadí': ''})
+    # Přejmenování sloupců
+    # '' pro Pořadí, 'Ø' pro Průměr na hod
+    df_show = df_show.rename(columns={'Pořadí': '', 'Průměr na hod': 'Ø'})
 
     # 3. HTML + CSS
     html_content = f"""
@@ -55,8 +56,10 @@ def display_table(df, sort_by, columns):
             white-space: nowrap; 
             text-align: left;
         }}
-        /* Uděláme první sloupec (pořadí) co nejužší */
+        /* První sloupec (pořadí) co nejužší a na střed */
         .table-zebra th:first-child, .table-zebra td:first-child {{ width: 30px; text-align: center; }}
+        /* Poslední sloupec (Ø) také na střed pro lepší přehled */
+        .table-zebra th:last-child, .table-zebra td:last-child {{ text-align: center; }}
         
         .table-zebra th {{ border-bottom: 2px solid #ddd; background-color: #ffffff; position: sticky; top: 0; }}
         .scroll-container {{ height: 500px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; }}
