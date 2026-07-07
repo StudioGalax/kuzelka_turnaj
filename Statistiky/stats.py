@@ -29,47 +29,41 @@ DATA_FOLDER = 'Historie_turnaju_json'
 def display_table(df, sort_by, columns):
     if df.empty: return
     
-    # 1. Seřazení a příprava
-    df = df.sort_values(by=[sort_by, 'Průměr na hod'], ascending=[False, False]).copy()
+    # KONTROLA: Pokud sloupec 'Průměr na hod' neexistuje, řadíme jen podle sort_by
+    if 'Průměr na hod' in df.columns:
+        df = df.sort_values(by=[sort_by, 'Průměr na hod'], ascending=[False, False]).copy()
+    else:
+        df = df.sort_values(by=[sort_by], ascending=[False]).copy()
+    
     df['Pořadí'] = df[sort_by].rank(method='min', ascending=False).astype(int)
     
     cols_to_show = ['Pořadí'] + [c for c in columns if c in df.columns]
     df_show = df[cols_to_show].copy()
     
-    # 2. Formátování
+    # Formátování
     if 'Liga Body' in df_show.columns:
         df_show['Liga Body'] = (df_show['Liga Body'] / 10).round(1)
-    if 'Průměr na hod' in df_show.columns:
-        df_show['Průměr na hod'] = df_show['Průměr na hod'].round(2)
-        
-    # Přejmenování sloupců
-    # '' pro Pořadí, 'Ø' pro Průměr na hod
-    df_show = df_show.rename(columns={'Pořadí': '', 'Průměr na hod': 'Ø/hod'})
+    if 'Max' in df_show.columns:
+        df_show['Max'] = df_show['Max'].round(0)
 
-    # 3. HTML + CSS
+    # Přejmenování pro hezčí tabulku
+    rename_map = {'Pořadí': '', 'Průměr na hod': 'Ø/hod'}
+    df_show = df_show.rename(columns=rename_map)
+
+    # HTML generování (stejné jako předtím)
+    html_table = df_show.to_html(index=False, classes='table-zebra', border=0)
+    
     html_content = f"""
     <style>
         .table-zebra {{ width: 100%; border-collapse: collapse; font-family: sans-serif; table-layout: auto; }}
         .table-zebra tr:nth-of-type(even) {{ background-color: #f0f2f6; }}
-        .table-zebra th, .table-zebra td {{ 
-            padding: 8px 10px; 
-            border-bottom: 1px solid #eee; 
-            white-space: nowrap; 
-            text-align: left;
-        }}
-        /* První sloupec (pořadí) co nejužší a na střed */
+        .table-zebra th, .table-zebra td {{ padding: 8px 10px; border-bottom: 1px solid #eee; white-space: nowrap; text-align: left; }}
         .table-zebra th:first-child, .table-zebra td:first-child {{ width: 30px; text-align: center; }}
-        /* Poslední sloupec (Ø) také na střed pro lepší přehled */
-        .table-zebra th:last-child, .table-zebra td:last-child {{ text-align: center; }}
-        
         .table-zebra th {{ border-bottom: 2px solid #ddd; background-color: #ffffff; position: sticky; top: 0; }}
         .scroll-container {{ max-height: 500px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; }}
     </style>
-    <div class="scroll-container">
-        {df_show.to_html(index=False, classes='table-zebra', border=0)}
-    </div>
+    <div class="scroll-container">{html_table}</div>
     """
-    
     components.html(html_content, height=510)
 
 def get_rekordy(limit):
