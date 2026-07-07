@@ -62,7 +62,7 @@ def display_table(df, sort_by, columns):
         .table-zebra th:last-child, .table-zebra td:last-child {{ text-align: center; }}
         
         .table-zebra th {{ border-bottom: 2px solid #ddd; background-color: #ffffff; position: sticky; top: 0; }}
-        .scroll-container {{ height: 500px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; }}
+        .scroll-container {{ max-height: 500px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; }}
     </style>
     <div class="scroll-container">
         {df_show.to_html(index=False, classes='table-zebra', border=0)}
