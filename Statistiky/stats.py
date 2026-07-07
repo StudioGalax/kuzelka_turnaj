@@ -43,7 +43,7 @@ def display_table(df, sort_by, columns):
         
     # Přejmenování sloupců
     # '' pro Pořadí, 'Ø' pro Průměr na hod
-    df_show = df_show.rename(columns={'Pořadí': '', 'Průměr na hod': 'Ø'})
+    df_show = df_show.rename(columns={'Pořadí': '', 'Průměr na hod': 'Ø/hod'})
 
     # 3. HTML + CSS
     html_content = f"""
