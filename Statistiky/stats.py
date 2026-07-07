@@ -5,6 +5,21 @@ import os
 import math
 import numpy as np
 
+# --- GLOBÁLNÍ CSS PRO TABULKY (Zebra + Scroll) ---
+st.markdown("""
+    <style>
+    /* Zebra efekt pro všechny tabulky */
+    div[data-testid="stDataFrame"] table tr:nth-of-type(even) {
+        background-color: #f0f2f6 !important;
+    }
+    
+    /* Vynucení barvy textu pro lepší čitelnost */
+    div[data-testid="stDataFrame"] table tr {
+        color: #000000 !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # --- KONFIGURACE ---
 DATA_FOLDER = 'Historie_turnaju_json'
 
@@ -36,14 +51,7 @@ def display_table(df, sort_by, columns):
         }
     )
     
-    # 4. Injekce CSS pro zebru (světle šedé sudé řádky)
-    st.markdown("""
-        <style>
-        [data-testid="stDataFrame"] table tr:nth-of-type(even) {
-            background-color: #f0f2f6;
-        }
-        </style>
-    """, unsafe_allow_html=True)
+
 
 def vypocitat_pokerove_body(body, umisteni, pocet_hracu):
     return math.sqrt(pocet_hracu) * (body / math.log(umisteni + 1, 2))
