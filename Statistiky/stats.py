@@ -28,7 +28,7 @@ DATA_FOLDER = 'Historie_turnaju_json'
 def display_table(df, sort_by, columns):
     if df.empty: return
     
-    # 1. Seřazení a příprava (stejné jako předtím)
+    # 1. Seřazení a příprava
     df = df.sort_values(by=[sort_by, 'Průměr na hod'], ascending=[False, False]).copy()
     df['Pořadí'] = df[sort_by].rank(method='min', ascending=False).astype(int)
     
@@ -38,14 +38,18 @@ def display_table(df, sort_by, columns):
     if 'Liga Body' in df_show.columns:
         df_show['Liga Body'] = (df_show['Liga Body'] / 10).round(1)
 
-    # 2. Vygenerování čistého HTML kódu
-    # Převedeme dataframe na HTML tabulku a přidáme styly
+    # 2. HTML + CSS, které se postará o tabulku, zebru i scroll
     html_content = f"""
     <style>
-        .table-zebra {{ width: 100%; border-collapse: collapse; font-family: sans-serif; }}
+        .table-zebra {{ width: 100%; border-collapse: collapse; font-family: sans-serif; table-layout: auto; }}
         .table-zebra tr:nth-of-type(even) {{ background-color: #f0f2f6; }}
-        .table-zebra th {{ text-align: left; padding: 10px; border-bottom: 2px solid #ddd; background-color: #ffffff; position: sticky; top: 0; }}
-        .table-zebra td {{ padding: 8px; border-bottom: 1px solid #eee; }}
+        .table-zebra th, .table-zebra td {{ 
+            padding: 8px 12px; 
+            border-bottom: 1px solid #eee; 
+            white-space: nowrap; 
+            text-align: left;
+        }}
+        .table-zebra th {{ border-bottom: 2px solid #ddd; background-color: #ffffff; position: sticky; top: 0; }}
         .scroll-container {{ height: 500px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; }}
     </style>
     <div class="scroll-container">
@@ -53,7 +57,7 @@ def display_table(df, sort_by, columns):
     </div>
     """
     
-    # 3. Vykreslení přes dedikovanou komponentu
+    # 3. Vykreslení
     components.html(html_content, height=510)
     
 
