@@ -23,26 +23,27 @@ def display_table(df, sort_by, columns):
     if 'Liga Body' in df_show.columns:
         df_show['Liga Body'] = (df_show['Liga Body'] / 10).round(1)
 
-    # 3. Aplikace zebry pomocí styleru (pandas)
-    # Subset zajistí, že barvíme celý řádek
-    styled_df = df_show.style.set_properties(**{'text-align': 'left'}) \
-        .background_gradient(subset=['Pořadí'], cmap='Blues', vmin=0, vmax=1) \
-        .set_table_styles([{
-            'selector': 'tr:nth-of-type(even)',
-            'props': [('background-color', '#f0f2f6')] # Světle šedá pro zebru
-        }])
-
-    # 4. Zobrazení s fixní výškou pro scroll
+    # 3. Zebra pomocí CSS
+    # Vynechali jsme .background_gradient, který dělal tu neplechu
     st.dataframe(
-        styled_df,
+        df_show,
         hide_index=True,
         use_container_width=True,
-        height=500, # Zde nastavuješ výšku v pixelech (např. 500px)
+        height=500,
         column_config={
             "Liga Body": st.column_config.NumberColumn(format="%.1f"),
             "Průměr na hod": st.column_config.NumberColumn(format="%.2f")
         }
     )
+    
+    # 4. Injekce CSS pro zebru (světle šedé sudé řádky)
+    st.markdown("""
+        <style>
+        [data-testid="stDataFrame"] table tr:nth-of-type(even) {
+            background-color: #f0f2f6;
+        }
+        </style>
+    """, unsafe_allow_html=True)
 
 def vypocitat_pokerove_body(body, umisteni, pocet_hracu):
     return math.sqrt(pocet_hracu) * (body / math.log(umisteni + 1, 2))
