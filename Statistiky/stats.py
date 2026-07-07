@@ -148,12 +148,12 @@ if all_stats:
 
     with tab2:
         # Tady se zobrazí rekordy z funkce get_rekordy
-        st.markdown("### 🔥 Historické rekordy (10 hodů)")
+        st.markdown("### 🔥 Top (10 hodů)")
         display_table(get_rekordy(10), 'Max', ['Jméno', 'Max', 'Datum'])
         
         st.markdown("---")
         
-        st.markdown("### 🔥 Historické rekordy (15 hodů)")
+        st.markdown("### 🔥 Top (15 hodů)")
         display_table(get_rekordy(15), 'Max', ['Jméno', 'Max', 'Datum'])
 
 else:
