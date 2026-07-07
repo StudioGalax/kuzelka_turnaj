@@ -73,26 +73,31 @@ def display_table(df, sort_by, columns):
     components.html(html_content, height=510)
 
 def get_rekordy(limit):
-    # Pracujeme jen se surovými daty (df_raw)
     vsechna_kola = []
     
     for _, row in df_raw[df_raw['limit_hodu'] == limit].iterrows():
         match = re.search(r'\d{4}-\d{2}-\d{2}', row['Turnaj'])
         datum = match.group(0) if match else "Neznámé"
         
+        # Ošetření: pokud Surove_Body není seznam, přeskočíme
+        if not isinstance(row['Surove_Body'], list): continue
+            
         for kolo in row['Surove_Body']:
-            vsechna_kola.append({
-                "Jméno": row['Jméno'], 
-                "Rekord": sum(kolo), 
-                "Datum": datum
-            })
+            # Ošetření: sčítáme jen pokud je kolo seznam čísel
+            if isinstance(kolo, list):
+                vsechna_kola.append({
+                    "Jméno": row['Jméno'], 
+                    "Rekord": sum(kolo), 
+                    "Datum": datum
+                })
     
     if not vsechna_kola: return pd.DataFrame()
     
     df_rek = pd.DataFrame(vsechna_kola)
-    # Tady hledáme max, ale neovlivňujeme původní df_raw
-    idx = df_rek.groupby('Jméno')['Rekord'].idxmax()
-    return df_rek.loc[idx].sort_values('Rekord', ascending=False).rename(columns={'Rekord': 'Max', 'Datum': 'Datum'})
+    # Tady bereme Top 10 výkonů z celé historie
+    df_top10 = df_rek.sort_values('Rekord', ascending=False).head(10)
+    
+    return df_top10.rename(columns={'Rekord': 'Max', 'Datum': 'Datum'})
     
 
 
