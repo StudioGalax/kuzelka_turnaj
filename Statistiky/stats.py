@@ -37,8 +37,7 @@ def display_table(df, sort_by, columns):
     if 'Liga Body' in df_show.columns:
         df_show['Liga Body'] = (df_show['Liga Body'] / 10).round(1)
 
-    # 2. Převod na HTML s vlastními styly (Zebra a Scroll)
-    # Definujeme HTML tabulku s inline CSS
+    # 2. Převod na HTML
     html_table = df_show.to_html(
         index=False, 
         classes='table-zebra', 
@@ -46,8 +45,7 @@ def display_table(df, sort_by, columns):
         justify='left'
     )
     
-    # 3. Vykreslení pomocí st.markdown
-    # 'div' obaluje tabulku a dává jí výšku 500px s povoleným scrollováním
+    # 3. Vykreslení pomocí st.markdown s unsafe_allow_html=True
     st.markdown(f"""
     <style>
         .table-zebra {{ width: 100%; border-collapse: collapse; }}
@@ -59,7 +57,7 @@ def display_table(df, sort_by, columns):
     <div class="scroll-container">
         {html_table}
     </div>
-    """, unsafe_allow_html=True)
+    """, unsafe_allow_html=True) # <--- TADY JE TEN KLÍČOVÝ PARAMETR
     
 
 
