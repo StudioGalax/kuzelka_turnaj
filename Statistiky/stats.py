@@ -66,26 +66,35 @@ def display_table(df, sort_by, columns):
     """
     components.html(html_content, height=510)
 
-def get_rekordy(limit):
+def get_rekordy(hledany_limit):
     vsechna_data = []
     
-    # Projdeme JSON strukturu
-    for team, hraci in data.get("teams", {}).items():
-        for jmeno, body_list in hraci.items():
-            # body_list je např. [32, 68, 45, 43]
-            for i, body in enumerate(body_list):
-                vsechna_data.append({
-                    "Jméno": jmeno,
-                    "Rekord": body,
-                    "Datum": "Historie" # Tady můžeš doplnit datum z názvu souboru
-                })
+    # Projdeme všechny turnajové soubory
+    for filename in os.listdir(DATA_FOLDER):
+        if filename.endswith(".json"):
+            # 1. Datum z názvu
+            match = re.search(r'\d{4}-\d{2}-\d{2}', filename)
+            datum = match.group(0) if match else "Neznámé"
+            
+            with open(os.path.join(DATA_FOLDER, filename), 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                
+                # 2. TADY JE TO TŘÍDĚNÍ PODLE TOHO TVÉHO KLÍČE NA KONCI
+                if data.get("limit_hodu") == hledany_limit:
+                    for team, hraci in data.get("teams", {}).items():
+                        for jmeno, body_list in hraci.items():
+                            for b in body_list:
+                                vsechna_data.append({
+                                    "Jméno": jmeno,
+                                    "Max": b,
+                                    "Datum": datum
+                                })
     
-    if not vsechna_data: return pd.DataFrame(columns=["Jméno", "Max", "Datum"])
+    df = pd.DataFrame(vsechna_data)
+    if df.empty: return pd.DataFrame(columns=["Jméno", "Max", "Datum"])
     
-    df_rek = pd.DataFrame(vsechna_data)
-    # Najdeme top 10 výkonů
-    df_top10 = df_rek.sort_values('Rekord', ascending=False).head(10)
-    return df_top10.rename(columns={'Rekord': 'Max', 'Datum': 'Datum'})
+    # 3. Seřadíme a vezmeme Top 10
+    return df.sort_values('Max', ascending=False).head(10)
     
 
 
