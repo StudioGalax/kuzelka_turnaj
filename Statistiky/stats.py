@@ -35,20 +35,29 @@ def display_table(df, sort_by, columns):
     cols_to_show = ['Pořadí'] + [c for c in columns if c in df.columns]
     df_show = df[cols_to_show].copy()
     
+    # 2. Formátování
     if 'Liga Body' in df_show.columns:
         df_show['Liga Body'] = (df_show['Liga Body'] / 10).round(1)
+    if 'Průměr na hod' in df_show.columns:
+        df_show['Průměr na hod'] = df_show['Průměr na hod'].round(2)
+        
+    # Přejmenování sloupce Pořadí na prázdný řetězec, aby nebyl široký
+    df_show = df_show.rename(columns={'Pořadí': ''})
 
-    # 2. HTML + CSS, které se postará o tabulku, zebru i scroll
+    # 3. HTML + CSS
     html_content = f"""
     <style>
         .table-zebra {{ width: 100%; border-collapse: collapse; font-family: sans-serif; table-layout: auto; }}
         .table-zebra tr:nth-of-type(even) {{ background-color: #f0f2f6; }}
         .table-zebra th, .table-zebra td {{ 
-            padding: 8px 12px; 
+            padding: 8px 10px; 
             border-bottom: 1px solid #eee; 
             white-space: nowrap; 
             text-align: left;
         }}
+        /* Uděláme první sloupec (pořadí) co nejužší */
+        .table-zebra th:first-child, .table-zebra td:first-child {{ width: 30px; text-align: center; }}
+        
         .table-zebra th {{ border-bottom: 2px solid #ddd; background-color: #ffffff; position: sticky; top: 0; }}
         .scroll-container {{ height: 500px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; }}
     </style>
@@ -57,7 +66,6 @@ def display_table(df, sort_by, columns):
     </div>
     """
     
-    # 3. Vykreslení
     components.html(html_content, height=510)
     
 
