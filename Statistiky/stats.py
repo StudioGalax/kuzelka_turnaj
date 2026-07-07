@@ -131,31 +131,30 @@ if all_stats:
 
     df_final = df_raw.groupby('Jméno').apply(process_player, include_groups=False).reset_index()
 
+   # Vykreslení aplikace
     st.title("📊 Statistiky kuželkářského turnaje")
-
-# Tady definujeme záložky
-tab1, tab2 = st.tabs(["📊 Ligová tabulka", "🏆 Top rekordy 10/15"])
+    
+    tab1, tab2 = st.tabs(["📊 Ligová tabulka", "🏆 Top rekordy 10/15"])
 
     with tab1:
-        # Tady tvůj kód pro ligy zůstává netknutý
         PRUH_LIGY = 4.0
         c1, c2 = st.columns(2)
         with c1: 
             st.markdown("### 🏆 Master Liga")
-            # Používáme tvoji novou funkci s 'Ø/hod'
             display_table(df_final[df_final['Průměr na hod'] >= PRUH_LIGY], 'Liga Body', ['Jméno', 'Liga Body', 'Ø/hod'])
         with c2: 
             st.markdown("### 🥈 Challenge Liga")
             display_table(df_final[df_final['Průměr na hod'] < PRUH_LIGY], 'Liga Body', ['Jméno', 'Liga Body', 'Ø/hod'])
 
     with tab2:
-        # Tady se zobrazí rekordy, které nijak neovlivňují ligové body
+        # Tady se zobrazí rekordy z funkce get_rekordy
         st.markdown("### 🔥 Historické rekordy (10 hodů)")
         display_table(get_rekordy(10), 'Max', ['Jméno', 'Max', 'Datum'])
-    
+        
         st.markdown("---")
-    
+        
         st.markdown("### 🔥 Historické rekordy (15 hodů)")
         display_table(get_rekordy(15), 'Max', ['Jméno', 'Max', 'Datum'])
+
 else:
     st.info("Žádná data k zobrazení.")
