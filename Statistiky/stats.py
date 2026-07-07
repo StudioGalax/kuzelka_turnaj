@@ -4,6 +4,7 @@ import json
 import os
 import math
 import numpy as np
+import streamlit.components.v1 as components
 
 # --- GLOBÁLNÍ CSS PRO TABULKY (Zebra + Scroll) ---
 st.markdown("""
@@ -27,7 +28,7 @@ DATA_FOLDER = 'Historie_turnaju_json'
 def display_table(df, sort_by, columns):
     if df.empty: return
     
-    # 1. Seřazení a příprava dat
+    # 1. Seřazení a příprava (stejné jako předtím)
     df = df.sort_values(by=[sort_by, 'Průměr na hod'], ascending=[False, False]).copy()
     df['Pořadí'] = df[sort_by].rank(method='min', ascending=False).astype(int)
     
@@ -37,27 +38,23 @@ def display_table(df, sort_by, columns):
     if 'Liga Body' in df_show.columns:
         df_show['Liga Body'] = (df_show['Liga Body'] / 10).round(1)
 
-    # 2. Převod na HTML
-    html_table = df_show.to_html(
-        index=False, 
-        classes='table-zebra', 
-        border=0,
-        justify='left'
-    )
-    
-    # 3. Vykreslení pomocí st.markdown s unsafe_allow_html=True
-    st.markdown(f"""
+    # 2. Vygenerování čistého HTML kódu
+    # Převedeme dataframe na HTML tabulku a přidáme styly
+    html_content = f"""
     <style>
-        .table-zebra {{ width: 100%; border-collapse: collapse; }}
+        .table-zebra {{ width: 100%; border-collapse: collapse; font-family: sans-serif; }}
         .table-zebra tr:nth-of-type(even) {{ background-color: #f0f2f6; }}
-        .table-zebra th {{ text-align: left; padding: 8px; border-bottom: 2px solid #ddd; }}
+        .table-zebra th {{ text-align: left; padding: 10px; border-bottom: 2px solid #ddd; background-color: #ffffff; position: sticky; top: 0; }}
         .table-zebra td {{ padding: 8px; border-bottom: 1px solid #eee; }}
-        .scroll-container {{ height: 500px; overflow-y: auto; border: 1px solid #ccc; }}
+        .scroll-container {{ height: 500px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; }}
     </style>
     <div class="scroll-container">
-        {html_table}
+        {df_show.to_html(index=False, classes='table-zebra', border=0)}
     </div>
-    """, unsafe_allow_html=True) # <--- TADY JE TEN KLÍČOVÝ PARAMETR
+    """
+    
+    # 3. Vykreslení přes dedikovanou komponentu
+    components.html(html_content, height=510)
     
 
 
