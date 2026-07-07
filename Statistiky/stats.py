@@ -152,13 +152,15 @@ if all_stats:
             display_table(df_final[df_final['Průměr na hod'] < PRUH_LIGY], 'Liga Body', ['Jméno', 'Liga Body', 'Ø/hod'])
 
     with tab2:
-        # Tady se zobrazí rekordy z funkce get_rekordy
-        st.markdown("### 🔥 Top (10 hodů)")
+    # Rozdělíme záložku na dva sloupce
+    c1, c2 = st.columns(2)
+    
+    with c1:
+        st.markdown("### 🔥 Top 10 (10 hodů)")
         display_table(get_rekordy(10), 'Max', ['Jméno', 'Max', 'Datum'])
         
-        st.markdown("---")
-        
-        st.markdown("### 🔥 Top (15 hodů)")
+    with c2:
+        st.markdown("### 🔥 Top 10 (15 hodů)")
         display_table(get_rekordy(15), 'Max', ['Jméno', 'Max', 'Datum'])
 
 else:
