@@ -27,29 +27,39 @@ DATA_FOLDER = 'Historie_turnaju_json'
 def display_table(df, sort_by, columns):
     if df.empty: return
     
-    # 1. Seřazení a pořadí
+    # 1. Seřazení a příprava dat
     df = df.sort_values(by=[sort_by, 'Průměr na hod'], ascending=[False, False]).copy()
     df['Pořadí'] = df[sort_by].rank(method='min', ascending=False).astype(int)
     
-    # 2. Příprava sloupců a formátování
     cols_to_show = ['Pořadí'] + [c for c in columns if c in df.columns]
     df_show = df[cols_to_show].copy()
     
     if 'Liga Body' in df_show.columns:
         df_show['Liga Body'] = (df_show['Liga Body'] / 10).round(1)
 
-    # 3. Zebra pomocí CSS
-    # Vynechali jsme .background_gradient, který dělal tu neplechu
-    st.dataframe(
-        df_show,
-        hide_index=True,
-        use_container_width=True,
-        height=500,
-        column_config={
-            "Liga Body": st.column_config.NumberColumn(format="%.1f"),
-            "Průměr na hod": st.column_config.NumberColumn(format="%.2f")
-        }
+    # 2. Převod na HTML s vlastními styly (Zebra a Scroll)
+    # Definujeme HTML tabulku s inline CSS
+    html_table = df_show.to_html(
+        index=False, 
+        classes='table-zebra', 
+        border=0,
+        justify='left'
     )
+    
+    # 3. Vykreslení pomocí st.markdown
+    # 'div' obaluje tabulku a dává jí výšku 500px s povoleným scrollováním
+    st.markdown(f"""
+    <style>
+        .table-zebra {{ width: 100%; border-collapse: collapse; }}
+        .table-zebra tr:nth-of-type(even) {{ background-color: #f0f2f6; }}
+        .table-zebra th {{ text-align: left; padding: 8px; border-bottom: 2px solid #ddd; }}
+        .table-zebra td {{ padding: 8px; border-bottom: 1px solid #eee; }}
+        .scroll-container {{ height: 500px; overflow-y: auto; border: 1px solid #ccc; }}
+    </style>
+    <div class="scroll-container">
+        {html_table}
+    </div>
+    """, unsafe_allow_html=True)
     
 
 
