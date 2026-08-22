@@ -451,7 +451,7 @@ if all_stats:
         if os.path.exists(logo_path):
             st.image(logo_path, use_container_width=True)
         st.markdown("### 🎳 Kuželky Liga")
-        st.markdown("**Vibe Coder:** Jan Bugdol  \n**Studio:** Studio Galax")
+        st.markdown("**Vibe Coder:** Jan Bugdol  \n**Studio:** Studio Galax  \n🤖 **Built with AI:** Claude & Gemini (Cline)")
         st.markdown("📧 [studiogalax.cz@gmail.com](mailto:studiogalax.cz@gmail.com)")
         st.caption("Případné připomínky, nápady na funkce a vylepšení posílejte na e-mail.")
         
@@ -590,7 +590,7 @@ if all_stats:
             st.image(logo_path, width=160)
     with col_f2:
         st.markdown("""
-        🚀 **Vibe Coder:** Jan Bugdol &nbsp;|&nbsp; 🏢 **Studio Galax**  
+        🚀 **Vibe Coder:** Jan Bugdol &nbsp;|&nbsp; 🏢 **Studio Galax** &nbsp;|&nbsp; 🤖 **Built with AI:** Claude & Gemini (Cline)  
         📧 **Připomínky, nápady & vylepšení:** [studiogalax.cz@gmail.com](mailto:studiogalax.cz@gmail.com)
         """)
 
