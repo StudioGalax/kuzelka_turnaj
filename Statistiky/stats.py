@@ -214,18 +214,25 @@ if all_stats:
     # Vykreslení aplikace
     st.title("📊 Statistiky kuželkářského turnaje")
     
-    tab1, tab2, tab3 = st.tabs(["📊 Ligová tabulka", "🏆 Top rekordy 10/15", "📜 Historie turnajů"])
+    tab1, tab2, tab3, tab4 = st.tabs(["📊 Ligová tabulka", "🎯 Průměr na hod", "🏆 Top rekordy 10/15", "📜 Historie turnajů"])
 
     with tab1:
+        PRUH_LIGY = 4.0
         c1, c2 = st.columns(2)
         with c1: 
-            st.markdown("### 🏆 Ligová tabulka")
-            display_table(df_final, 'Liga Body', ['Jméno', 'Liga Body', 'Ø/hod'])
+            st.markdown("### 🏆 Master Liga")
+            display_table(df_final[df_final['Průměr na hod'] > PRUH_LIGY], 'Liga Body', ['Jméno', 'Liga Body', 'Ø/hod'])
         with c2: 
-            st.markdown("### 🎯 Tabulka dle průměru na hod")
-            display_table(df_final, 'Průměr na hod', ['Jméno', 'Ø/hod', 'Liga Body'])
+            st.markdown("### 🥈 Challenge Liga")
+            display_table(df_final[df_final['Průměr na hod'] <= PRUH_LIGY], 'Liga Body', ['Jméno', 'Liga Body', 'Ø/hod'])
 
     with tab2:
+        c1, _ = st.columns(2)
+        with c1:
+            st.markdown("### 🎯 Pořadí dle průměru na hod")
+            display_table(df_final, 'Průměr na hod', ['Jméno', 'Ø/hod', 'Liga Body'])
+
+    with tab3:
         # Rozdělíme záložku na dva sloupce
         c1, c2 = st.columns(2)
     
@@ -237,7 +244,7 @@ if all_stats:
             st.markdown("### 🔥 Top 10 (15 hodů)")
             display_table(get_rekordy(15), 'Max', ['Jméno', 'Max', 'Datum'])
 
-    with tab3:
+    with tab4:
         turnaje = get_all_tournaments()
         if not turnaje:
             st.info("Nebyly nalezeny žádné uložené turnaje.")
