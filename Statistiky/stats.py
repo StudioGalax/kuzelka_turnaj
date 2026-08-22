@@ -249,16 +249,16 @@ if all_stats:
         c1, c2 = st.columns(2)
         with c1: 
             st.markdown("### 🏆 Master Liga")
-            display_table(df_final[df_final['Průměr na hod'] > PRUH_LIGY], 'Liga Body', ['Jméno', 'Forma', 'Liga Body', 'Ø/hod'])
+            display_table(df_final[df_final['Průměr na hod'] > PRUH_LIGY], 'Liga Body', ['Jméno', 'Liga Body', 'Ø/hod', 'Forma'])
         with c2: 
             st.markdown("### 🥈 Challenge Liga")
-            display_table(df_final[df_final['Průměr na hod'] <= PRUH_LIGY], 'Liga Body', ['Jméno', 'Forma', 'Liga Body', 'Ø/hod'])
+            display_table(df_final[df_final['Průměr na hod'] <= PRUH_LIGY], 'Liga Body', ['Jméno', 'Liga Body', 'Ø/hod', 'Forma'])
 
     with tab2:
         c1, _ = st.columns(2)
         with c1:
             st.markdown("### 🎯 Pořadí dle průměru na hod")
-            display_table(df_final, 'Průměr na hod', ['Jméno', 'Forma', 'Ø/hod', 'Liga Body'])
+            display_table(df_final, 'Průměr na hod', ['Jméno', 'Ø/hod', 'Liga Body', 'Forma'])
 
     with tab3:
         # Rozdělíme záložku na dva sloupce
