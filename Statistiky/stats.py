@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 # --- KONFIGURACE STRÁNKY ---
 st.set_page_config(page_title="Statistiky kuželkářského turnaje", layout="wide")
 
-# --- GLOBÁLNÍ CSS PRO TABULKY (Zebra + Scroll) ---
+# --- GLOBÁLNÍ CSS PRO TABULKY A METRIKY ---
 st.markdown("""
     <style>
     /* Zebra efekt pro všechny tabulky */
@@ -23,6 +23,26 @@ st.markdown("""
     /* Vynucení barvy textu pro lepší čitelnost */
     div[data-testid="stDataFrame"] table tr {
         color: #000000 !important;
+    }
+
+    /* Přehledné a kompaktní statistické karty / metriky */
+    div[data-testid="stMetric"] {
+        background-color: #f8f9fa;
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+    }
+    div[data-testid="stMetricValue"] {
+        font-size: 19px !important;
+        font-weight: 600 !important;
+    }
+    div[data-testid="stMetricLabel"] {
+        font-size: 13px !important;
+        font-weight: 500 !important;
+        color: #4a5568 !important;
+    }
+    div[data-testid="stMetricDelta"] {
+        font-size: 12px !important;
     }
     </style>
 """, unsafe_allow_html=True)
