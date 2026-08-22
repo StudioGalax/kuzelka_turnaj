@@ -40,20 +40,28 @@ else:
 def display_table(df, sort_by, columns):
     if df.empty: return
     
-    # KONTROLA: Pokud sloupec 'Průměr na hod' neexistuje, řadíme jen podle sort_by
-    if 'Průměr na hod' in df.columns:
+    # KONTROLA a řazení:
+    if sort_by != 'Průměr na hod' and 'Průměr na hod' in df.columns:
         df = df.sort_values(by=[sort_by, 'Průměr na hod'], ascending=[False, False]).copy()
+    elif sort_by == 'Průměr na hod' and 'Liga Body' in df.columns:
+        df = df.sort_values(by=['Průměr na hod', 'Liga Body'], ascending=[False, False]).copy()
     else:
         df = df.sort_values(by=[sort_by], ascending=[False]).copy()
     
     df['Pořadí'] = df[sort_by].rank(method='min', ascending=False).astype(int)
     
-    cols_to_show = ['Pořadí'] + [c for c in columns if c in df.columns]
+    # Mapování názvů sloupců (pokud bylo předáno 'Ø/hod' místo 'Průměr na hod')
+    col_mapping = {'Ø/hod': 'Průměr na hod'}
+    actual_cols = [col_mapping.get(c, c) for c in columns]
+    
+    cols_to_show = ['Pořadí'] + [c for c in actual_cols if c in df.columns]
     df_show = df[cols_to_show].copy()
     
     # Formátování
     if 'Liga Body' in df_show.columns:
         df_show['Liga Body'] = (df_show['Liga Body'] / 10).round(1)
+    if 'Průměr na hod' in df_show.columns:
+        df_show['Průměr na hod'] = df_show['Průměr na hod'].round(2)
     if 'Max' in df_show.columns:
         df_show['Max'] = df_show['Max'].round(0)
 
@@ -209,14 +217,13 @@ if all_stats:
     tab1, tab2, tab3 = st.tabs(["📊 Ligová tabulka", "🏆 Top rekordy 10/15", "📜 Historie turnajů"])
 
     with tab1:
-        PRUH_LIGY = 4.0
         c1, c2 = st.columns(2)
         with c1: 
-            st.markdown("### 🏆 Master Liga")
-            display_table(df_final[df_final['Průměr na hod'] >= PRUH_LIGY], 'Liga Body', ['Jméno', 'Liga Body', 'Ø/hod'])
+            st.markdown("### 🏆 Ligová tabulka")
+            display_table(df_final, 'Liga Body', ['Jméno', 'Liga Body', 'Ø/hod'])
         with c2: 
-            st.markdown("### 🥈 Challenge Liga")
-            display_table(df_final[df_final['Průměr na hod'] < PRUH_LIGY], 'Liga Body', ['Jméno', 'Liga Body', 'Ø/hod'])
+            st.markdown("### 🎯 Tabulka dle průměru na hod")
+            display_table(df_final, 'Průměr na hod', ['Jméno', 'Ø/hod', 'Liga Body'])
 
     with tab2:
         # Rozdělíme záložku na dva sloupce
