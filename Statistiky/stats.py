@@ -103,12 +103,14 @@ def display_table(df, sort_by, columns, max_rows=10):
     
     html_content = f"""
     <style>
-        .table-zebra {{ width: 100%; border-collapse: collapse; font-family: sans-serif; table-layout: auto; }}
-        .table-zebra tr:nth-of-type(even) {{ background-color: #f0f2f6; }}
-        .table-zebra th, .table-zebra td {{ padding: 8px 10px; border-bottom: 1px solid #eee; white-space: nowrap; text-align: left; }}
-        .table-zebra th:first-child, .table-zebra td:first-child {{ width: 30px; text-align: center; }}
-        .table-zebra th {{ border-bottom: 2px solid #ddd; background-color: #ffffff; position: sticky; top: 0; z-index: 1; }}
-        .scroll-container {{ max-height: {container_max_height}px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; }}
+        body {{ margin: 0; padding: 0; background-color: #ffffff; color: #1a202c; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }}
+        .table-zebra {{ width: 100%; border-collapse: collapse; table-layout: auto; font-size: 14px; color: #1a202c; }}
+        .table-zebra tr:nth-of-type(even) {{ background-color: #f7fafc; }}
+        .table-zebra tr:nth-of-type(odd) {{ background-color: #ffffff; }}
+        .table-zebra th, .table-zebra td {{ padding: 8px 10px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; text-align: left; color: #1a202c; }}
+        .table-zebra th:first-child, .table-zebra td:first-child {{ width: 30px; text-align: center; font-weight: bold; }}
+        .table-zebra th {{ border-bottom: 2px solid #cbd5e0; background-color: #edf2f7; color: #2d3748; font-weight: 600; position: sticky; top: 0; z-index: 1; }}
+        .scroll-container {{ max-height: {container_max_height}px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; }}
     </style>
     <div class="scroll-container">{html_table}</div>
     """
@@ -198,14 +200,16 @@ def display_tournament_table(df, max_rows=10):
     
     html_content = f"""
     <style>
-        .table-zebra-turnaj {{ width: 100%; border-collapse: collapse; font-family: sans-serif; table-layout: auto; font-size: 14px; }}
-        .table-zebra-turnaj tr:nth-of-type(even) {{ background-color: #f0f2f6; }}
-        .table-zebra-turnaj th, .table-zebra-turnaj td {{ padding: 8px 10px; border-bottom: 1px solid #eee; white-space: nowrap; text-align: center; }}
+        body {{ margin: 0; padding: 0; background-color: #ffffff; color: #1a202c; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }}
+        .table-zebra-turnaj {{ width: 100%; border-collapse: collapse; table-layout: auto; font-size: 14px; color: #1a202c; }}
+        .table-zebra-turnaj tr:nth-of-type(even) {{ background-color: #f7fafc; }}
+        .table-zebra-turnaj tr:nth-of-type(odd) {{ background-color: #ffffff; }}
+        .table-zebra-turnaj th, .table-zebra-turnaj td {{ padding: 8px 10px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; text-align: center; color: #1a202c; }}
         .table-zebra-turnaj th:nth-child(2), .table-zebra-turnaj td:nth-child(2),
         .table-zebra-turnaj th:nth-child(3), .table-zebra-turnaj td:nth-child(3) {{ text-align: left; }}
         .table-zebra-turnaj th:first-child, .table-zebra-turnaj td:first-child {{ width: 35px; text-align: center; font-weight: bold; }}
-        .table-zebra-turnaj th {{ border-bottom: 2px solid #ddd; background-color: #ffffff; position: sticky; top: 0; z-index: 1; }}
-        .scroll-container {{ max-height: {container_max_height}px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; }}
+        .table-zebra-turnaj th {{ border-bottom: 2px solid #cbd5e0; background-color: #edf2f7; color: #2d3748; font-weight: 600; position: sticky; top: 0; z-index: 1; }}
+        .scroll-container {{ max-height: {container_max_height}px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; }}
     </style>
     <div class="scroll-container">{html_table}</div>
     """
