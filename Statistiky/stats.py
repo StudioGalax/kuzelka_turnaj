@@ -37,7 +37,7 @@ else:
     DATA_FOLDER = 'Historie_turnaju_json'
 
 # --- FUNKCE ---
-def display_table(df, sort_by, columns):
+def display_table(df, sort_by, columns, max_rows=10):
     if df.empty: return
     
     # KONTROLA a řazení:
@@ -69,7 +69,14 @@ def display_table(df, sort_by, columns):
     rename_map = {'Pořadí': '', 'Průměr na hod': 'Ø/hod'}
     df_show = df_show.rename(columns=rename_map)
 
-    # HTML generování (stejné jako předtím)
+    # Výpočet výšky (max 10 hráčů viditelných, pak rolování)
+    row_count = len(df_show)
+    visible_rows = min(row_count, max_rows)
+    container_max_height = 42 + max_rows * 37
+    calc_height = 42 + visible_rows * 37 + 10
+    iframe_height = min(calc_height, container_max_height + 15)
+
+    # HTML generování
     html_table = df_show.to_html(index=False, classes='table-zebra', border=0)
     
     html_content = f"""
@@ -78,12 +85,12 @@ def display_table(df, sort_by, columns):
         .table-zebra tr:nth-of-type(even) {{ background-color: #f0f2f6; }}
         .table-zebra th, .table-zebra td {{ padding: 8px 10px; border-bottom: 1px solid #eee; white-space: nowrap; text-align: left; }}
         .table-zebra th:first-child, .table-zebra td:first-child {{ width: 30px; text-align: center; }}
-        .table-zebra th {{ border-bottom: 2px solid #ddd; background-color: #ffffff; position: sticky; top: 0; }}
-        .scroll-container {{ max-height: 500px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; }}
+        .table-zebra th {{ border-bottom: 2px solid #ddd; background-color: #ffffff; position: sticky; top: 0; z-index: 1; }}
+        .scroll-container {{ max-height: {container_max_height}px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; }}
     </style>
     <div class="scroll-container">{html_table}</div>
     """
-    components.html(html_content, height=510)
+    components.html(html_content, height=iframe_height)
 
 def get_rekordy(hledany_limit):
     vsechna_data = []
@@ -156,9 +163,15 @@ def get_all_tournaments():
     turnaje.sort(key=lambda x: x["sort_key"], reverse=True)
     return turnaje
 
-def display_tournament_table(df, height=510):
+def display_tournament_table(df, max_rows=10):
     if df.empty: return
     
+    row_count = len(df)
+    visible_rows = min(row_count, max_rows)
+    container_max_height = 42 + max_rows * 37
+    calc_height = 42 + visible_rows * 37 + 10
+    iframe_height = min(calc_height, container_max_height + 15)
+
     html_table = df.to_html(index=False, classes='table-zebra-turnaj', border=0)
     
     html_content = f"""
@@ -169,12 +182,12 @@ def display_tournament_table(df, height=510):
         .table-zebra-turnaj th:nth-child(2), .table-zebra-turnaj td:nth-child(2),
         .table-zebra-turnaj th:nth-child(3), .table-zebra-turnaj td:nth-child(3) {{ text-align: left; }}
         .table-zebra-turnaj th:first-child, .table-zebra-turnaj td:first-child {{ width: 35px; text-align: center; font-weight: bold; }}
-        .table-zebra-turnaj th {{ border-bottom: 2px solid #ddd; background-color: #ffffff; position: sticky; top: 0; }}
-        .scroll-container {{ max-height: {height - 10}px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; }}
+        .table-zebra-turnaj th {{ border-bottom: 2px solid #ddd; background-color: #ffffff; position: sticky; top: 0; z-index: 1; }}
+        .scroll-container {{ max-height: {container_max_height}px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; }}
     </style>
     <div class="scroll-container">{html_table}</div>
     """
-    components.html(html_content, height=height)
+    components.html(html_content, height=iframe_height)
 
 def vypocitat_pokerove_body(body, umisteni, pocet_hracu):
     return math.sqrt(pocet_hracu) * (body / math.log(umisteni + 1, 2))
@@ -353,11 +366,11 @@ if all_stats:
             with col_t1:
                 st.markdown("### 👤 Pořadí jednotlivců")
                 if not df_turnaj_hraci.empty:
-                    display_tournament_table(df_turnaj_hraci, height=520)
+                    display_tournament_table(df_turnaj_hraci)
             with col_t2:
                 st.markdown("### 👥 Pořadí týmů")
                 if not df_turnaj_tymy.empty:
-                    display_tournament_table(df_turnaj_tymy, height=520)
+                    display_tournament_table(df_turnaj_tymy)
 
 else:
     st.info("Žádná data k zobrazení.")
