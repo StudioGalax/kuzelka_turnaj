@@ -189,8 +189,10 @@ if os.path.exists(DATA_FOLDER):
             # Načtení dat
             turnaj_hraci = [{"Jméno": n.strip(), "Body": sum(s), "Surove_Body": s} for team in data.get('teams', {}).values() for n, s in team.items()]
             turnaj_hraci.sort(key=lambda x: x['Body'], reverse=True)
+            match = re.search(r'(\d{4})-(\d{2})-(\d{2})', file_name)
+            datum_sort = match.group(0) if match else file_name
             for idx, hrac in enumerate(turnaj_hraci):
-                all_stats.append({**hrac, "Ligove_Body": vypocitat_pokerove_body(hrac['Body'], idx + 1, len(turnaj_hraci)), "Turnaj": file_name, "limit_hodu": limit_hodu})
+                all_stats.append({**hrac, "Ligove_Body": vypocitat_pokerove_body(hrac['Body'], idx + 1, len(turnaj_hraci)), "Turnaj": file_name, "Datum_Sort": datum_sort, "limit_hodu": limit_hodu})
 
 if all_stats:
     df_raw = pd.DataFrame(all_stats)
@@ -200,14 +202,40 @@ if all_stats:
         celkem_hodů = sum(len(row['Surove_Body']) * row['limit_hodu'] for _, row in group.iterrows())
         odchylka = np.std(vsechny_hody) if len(vsechny_hody) > 0 else 0
         skokan = 0
+        forma = "➖"
+        
         if len(group) >= 2:
-            s = group.sort_values('Turnaj')
-            skokan = max(0, (s.iloc[-1]['Body'] / (len(s.iloc[-1]['Surove_Body']) * s.iloc[-1]['limit_hodu']) - s.iloc[-2]['Body'] / (len(s.iloc[-2]['Surove_Body']) * s.iloc[-2]['limit_hodu'])) * 2)
+            s = group.sort_values('Datum_Sort')
+            last_row = s.iloc[-1]
+            prev_row = s.iloc[-2]
+            
+            last_hody = len(last_row['Surove_Body']) * last_row['limit_hodu']
+            prev_hody = len(prev_row['Surove_Body']) * prev_row['limit_hodu']
+            
+            last_avg = last_row['Body'] / last_hody if last_hody > 0 else 0
+            prev_avg = prev_row['Body'] / prev_hody if prev_hody > 0 else 0
+            
+            skokan = max(0, (last_avg - prev_avg) * 2)
+            
+            if prev_avg > 0:
+                rozdil_pct = ((last_avg - prev_avg) / prev_avg) * 100
+                if rozdil_pct >= 5.0:
+                    forma = "⬆️"
+                elif rozdil_pct <= -5.0:
+                    forma = "⬇️"
+                else:
+                    forma = "➖"
+            else:
+                forma = "⬆️" if last_avg > 0 else "➖"
         
         # Průměr na turnaj, aby čísla nerostla do nekonečna
         prumerne_liga_body = (group['Ligove_Body'].sum() + max(0, (50 - odchylka) / 20) + skokan) / len(group)
         
-        return pd.Series({"Liga Body": prumerne_liga_body, "Průměr na hod": group['Body'].sum() / celkem_hodů if celkem_hodů > 0 else 0})
+        return pd.Series({
+            "Liga Body": prumerne_liga_body, 
+            "Průměr na hod": group['Body'].sum() / celkem_hodů if celkem_hodů > 0 else 0,
+            "Forma": forma
+        })
 
     df_final = df_raw.groupby('Jméno').apply(process_player, include_groups=False).reset_index()
 
@@ -221,16 +249,16 @@ if all_stats:
         c1, c2 = st.columns(2)
         with c1: 
             st.markdown("### 🏆 Master Liga")
-            display_table(df_final[df_final['Průměr na hod'] > PRUH_LIGY], 'Liga Body', ['Jméno', 'Liga Body', 'Ø/hod'])
+            display_table(df_final[df_final['Průměr na hod'] > PRUH_LIGY], 'Liga Body', ['Jméno', 'Forma', 'Liga Body', 'Ø/hod'])
         with c2: 
             st.markdown("### 🥈 Challenge Liga")
-            display_table(df_final[df_final['Průměr na hod'] <= PRUH_LIGY], 'Liga Body', ['Jméno', 'Liga Body', 'Ø/hod'])
+            display_table(df_final[df_final['Průměr na hod'] <= PRUH_LIGY], 'Liga Body', ['Jméno', 'Forma', 'Liga Body', 'Ø/hod'])
 
     with tab2:
         c1, _ = st.columns(2)
         with c1:
             st.markdown("### 🎯 Pořadí dle průměru na hod")
-            display_table(df_final, 'Průměr na hod', ['Jméno', 'Ø/hod', 'Liga Body'])
+            display_table(df_final, 'Průměr na hod', ['Jméno', 'Forma', 'Ø/hod', 'Liga Body'])
 
     with tab3:
         # Rozdělíme záložku na dva sloupce
