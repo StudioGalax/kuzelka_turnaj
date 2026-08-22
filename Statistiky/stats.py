@@ -436,6 +436,30 @@ if all_stats:
     df_final['Liga'] = np.where(df_final['Průměr na hod'] > 4.0, "🏆 Master Liga", "🥈 Challenge Liga")
 
     # Vykreslení aplikace
+    logo_path = os.path.join(DATA_FOLDER, "Studio_Galax_1920x1080.png")
+    if not os.path.exists(logo_path):
+        logo_path = os.path.join(BASE_DIR, "Historie_turnaju_json", "Studio_Galax_1920x1080.png")
+    if not os.path.exists(logo_path):
+        logo_path = os.path.join(os.path.dirname(BASE_DIR), "Historie_turnaju_json", "Studio_Galax_1920x1080.png")
+
+    qr_path = os.path.join(DATA_FOLDER, "statistiky_qrcode.png")
+    if not os.path.exists(qr_path):
+        qr_path = os.path.join(BASE_DIR, "Historie_turnaju_json", "statistiky_qrcode.png")
+
+    # Boční panel (Sidebar)
+    with st.sidebar:
+        if os.path.exists(logo_path):
+            st.image(logo_path, use_container_width=True)
+        st.markdown("### 🎳 Kuželky Liga")
+        st.markdown("**Vibe Coder:** Jan Bugdol  \n**Studio:** Studio Galax")
+        st.markdown("📧 [studiogalax.cz@gmail.com](mailto:studiogalax.cz@gmail.com)")
+        st.caption("Případné připomínky, nápady na funkce a vylepšení posílejte na e-mail.")
+        
+        if os.path.exists(qr_path):
+            st.markdown("---")
+            st.markdown("**📲 Sdílej statistiky:**")
+            st.image(qr_path, width=180)
+
     st.title("📊 Statistiky kuželkářského turnaje")
     
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Ligová tabulka", "🎯 Průměr na hod", "👤 Profil hráče", "🏆 Top rekordy 10/15", "📜 Historie turnajů"])
@@ -557,6 +581,18 @@ if all_stats:
                 st.markdown("### 👥 Pořadí týmů")
                 if not df_turnaj_tymy.empty:
                     display_tournament_table(df_turnaj_tymy)
+
+    # Patička (Footer)
+    st.markdown("---")
+    col_f1, col_f2 = st.columns([1, 4])
+    with col_f1:
+        if os.path.exists(logo_path):
+            st.image(logo_path, width=160)
+    with col_f2:
+        st.markdown("""
+        🚀 **Vibe Coder:** Jan Bugdol &nbsp;|&nbsp; 🏢 **Studio Galax**  
+        📧 **Připomínky, nápady & vylepšení:** [studiogalax.cz@gmail.com](mailto:studiogalax.cz@gmail.com)
+        """)
 
 else:
     st.info("Žádná data k zobrazení.")
