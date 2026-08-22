@@ -226,15 +226,6 @@ if is_admin:
                         st.rerun()
                     else:
                         st.warning("Zadejte jméno hráče.")
-                        
-                st.markdown("##### 🗑️ Odstranit hráče z databáze")
-                if not df_hraci_curr.empty:
-                    p_to_del = st.selectbox("Vyber hráče k odstranění:", df_hraci_curr["Jméno"].tolist(), key="db_del_p")
-                    if st.button("Smazat z hraci.csv", type="secondary"):
-                        df_hraci_curr = df_hraci_curr[df_hraci_curr["Jméno"] != p_to_del]
-                        save_hraci_csv(df_hraci_curr)
-                        st.success(f"Hráč {p_to_del} byl odstraněn.")
-                        st.rerun()
 
         st.markdown("---")
         if st.button("🚀 ZAHÁJIT TURNAJ", type="primary"):
