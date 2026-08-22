@@ -7,6 +7,9 @@ import numpy as np
 import streamlit.components.v1 as components
 import re
 
+# --- KONFIGURACE STRÁNKY ---
+st.set_page_config(page_title="Statistiky kuželkářského turnaje", layout="wide")
+
 # --- GLOBÁLNÍ CSS PRO TABULKY (Zebra + Scroll) ---
 st.markdown("""
     <style>
@@ -22,8 +25,16 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- KONFIGURACE ---
-DATA_FOLDER = 'Historie_turnaju_json'
+# --- KONFIGURACE CESTY K DATŮM ---
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if os.path.exists('Historie_turnaju_json'):
+    DATA_FOLDER = 'Historie_turnaju_json'
+elif os.path.exists(os.path.join(os.path.dirname(BASE_DIR), 'Historie_turnaju_json')):
+    DATA_FOLDER = os.path.join(os.path.dirname(BASE_DIR), 'Historie_turnaju_json')
+elif os.path.exists(os.path.join(BASE_DIR, 'Historie_turnaju_json')):
+    DATA_FOLDER = os.path.join(BASE_DIR, 'Historie_turnaju_json')
+else:
+    DATA_FOLDER = 'Historie_turnaju_json'
 
 # --- FUNKCE ---
 def display_table(df, sort_by, columns):
@@ -98,6 +109,65 @@ def get_rekordy(hledany_limit):
     
 
 
+def get_all_tournaments():
+    turnaje = []
+    if os.path.exists(DATA_FOLDER):
+        for filename in os.listdir(DATA_FOLDER):
+            if filename.endswith(".json"):
+                filepath = os.path.join(DATA_FOLDER, filename)
+                try:
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    
+                    match = re.search(r'(\d{4})-(\d{2})-(\d{2})', filename)
+                    if match:
+                        year, month, day = match.groups()
+                        datum_format = f"{day}. {month}. {year}"
+                        sort_key = f"{year}-{month}-{day}"
+                    else:
+                        datum_format = filename.replace('.json', '')
+                        sort_key = filename
+                    
+                    limit = data.get("limit_hodu", 15)
+                    teams = data.get("teams", {})
+                    pocet_hracu = sum(len(p) for p in teams.values())
+                    pocet_tymu = len(teams)
+                    
+                    turnaje.append({
+                        "filename": filename,
+                        "filepath": filepath,
+                        "datum_format": datum_format,
+                        "sort_key": sort_key,
+                        "limit_hodu": limit,
+                        "pocet_tymu": pocet_tymu,
+                        "pocet_hracu": pocet_hracu,
+                        "data": data
+                    })
+                except Exception:
+                    continue
+    turnaje.sort(key=lambda x: x["sort_key"], reverse=True)
+    return turnaje
+
+def display_tournament_table(df, height=510):
+    if df.empty: return
+    
+    html_table = df.to_html(index=False, classes='table-zebra-turnaj', border=0)
+    
+    html_content = f"""
+    <style>
+        .table-zebra-turnaj {{ width: 100%; border-collapse: collapse; font-family: sans-serif; table-layout: auto; font-size: 14px; }}
+        .table-zebra-turnaj tr:nth-of-type(even) {{ background-color: #f0f2f6; }}
+        .table-zebra-turnaj th, .table-zebra-turnaj td {{ padding: 8px 10px; border-bottom: 1px solid #eee; white-space: nowrap; text-align: center; }}
+        .table-zebra-turnaj th:nth-child(2), .table-zebra-turnaj td:nth-child(2),
+        .table-zebra-turnaj th:nth-child(3), .table-zebra-turnaj td:nth-child(3) {{ text-align: left; }}
+        .table-zebra-turnaj th:first-child, .table-zebra-turnaj td:first-child {{ width: 35px; text-align: center; font-weight: bold; }}
+        .table-zebra-turnaj th {{ border-bottom: 2px solid #ddd; background-color: #ffffff; position: sticky; top: 0; }}
+        .scroll-container {{ max-height: {height - 10}px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; }}
+    </style>
+    <div class="scroll-container">{html_table}</div>
+    """
+    components.html(html_content, height=height)
+
 def vypocitat_pokerove_body(body, umisteni, pocet_hracu):
     return math.sqrt(pocet_hracu) * (body / math.log(umisteni + 1, 2))
 
@@ -133,10 +203,10 @@ if all_stats:
 
     df_final = df_raw.groupby('Jméno').apply(process_player, include_groups=False).reset_index()
 
-   # Vykreslení aplikace
+    # Vykreslení aplikace
     st.title("📊 Statistiky kuželkářského turnaje")
     
-    tab1, tab2 = st.tabs(["📊 Ligová tabulka", "🏆 Top rekordy 10/15"])
+    tab1, tab2, tab3 = st.tabs(["📊 Ligová tabulka", "🏆 Top rekordy 10/15", "📜 Historie turnajů"])
 
     with tab1:
         PRUH_LIGY = 4.0
@@ -159,6 +229,93 @@ if all_stats:
         with c2:
             st.markdown("### 🔥 Top 10 (15 hodů)")
             display_table(get_rekordy(15), 'Max', ['Jméno', 'Max', 'Datum'])
+
+    with tab3:
+        turnaje = get_all_tournaments()
+        if not turnaje:
+            st.info("Nebyly nalezeny žádné uložené turnaje.")
+        else:
+            vybrany_idx = st.selectbox(
+                "📅 Vyberte turnaj:",
+                options=range(len(turnaje)),
+                format_func=lambda i: f"Turnaj ze dne {turnaje[i]['datum_format']} ({turnaje[i]['limit_hodu']} hodů na kolo, {turnaje[i]['pocet_hracu']} hráčů, {turnaje[i]['pocet_tymu']} týmů)"
+            )
+            
+            turnaj = turnaje[vybrany_idx]
+            t_data = turnaj["data"]
+            limit_h = turnaj["limit_hodu"]
+            teams_dict = t_data.get("teams", {})
+            
+            # Sestavení dat hráčů
+            hraci_rows = []
+            max_kol = max((len(r) for p in teams_dict.values() for r in p.values()), default=4)
+            
+            for team_name, players in teams_dict.items():
+                for player_name, rounds in players.items():
+                    celkem = sum(rounds)
+                    hody_celkem = len(rounds) * limit_h
+                    prumer_hod = celkem / hody_celkem if hody_celkem > 0 else 0
+                    max_kolo = max(rounds) if rounds else 0
+                    
+                    row = {
+                        "Hráč": player_name,
+                        "Tým": team_name,
+                    }
+                    for i in range(max_kol):
+                        row[f"{i+1}."] = rounds[i] if i < len(rounds) else "-"
+                    row["Celkem"] = celkem
+                    row["Ø/hod"] = round(prumer_hod, 2)
+                    row["Max"] = max_kolo
+                    hraci_rows.append(row)
+                    
+            df_turnaj_hraci = pd.DataFrame(hraci_rows)
+            if not df_turnaj_hraci.empty:
+                df_turnaj_hraci = df_turnaj_hraci.sort_values(by=["Celkem", "Max"], ascending=[False, False]).reset_index(drop=True)
+                df_turnaj_hraci.insert(0, "", range(1, len(df_turnaj_hraci) + 1))
+                
+            # Sestavení dat týmů
+            tymy_rows = []
+            for team_name, players in teams_dict.items():
+                team_celkem = sum(sum(rounds) for rounds in players.values())
+                p_cnt = len(players)
+                team_avg = team_celkem / p_cnt if p_cnt > 0 else 0
+                tymy_rows.append({
+                    "Tým": team_name,
+                    "Celkem": team_celkem,
+                    "Počet hráčů": p_cnt,
+                    "Ø na hráče": round(team_avg, 1)
+                })
+            df_turnaj_tymy = pd.DataFrame(tymy_rows)
+            if not df_turnaj_tymy.empty:
+                df_turnaj_tymy = df_turnaj_tymy.sort_values(by="Celkem", ascending=False).reset_index(drop=True)
+                df_turnaj_tymy.insert(0, "", range(1, len(df_turnaj_tymy) + 1))
+                
+            # Rychlé shrnutí / metriky turnaje
+            if not df_turnaj_hraci.empty and not df_turnaj_tymy.empty:
+                col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+                with col_m1:
+                    st.metric("🥇 Vítěz jednotlivců", df_turnaj_hraci.iloc[0]["Hráč"], f"{df_turnaj_hraci.iloc[0]['Celkem']} b.")
+                with col_m2:
+                    st.metric("🏆 Vítězný tým", df_turnaj_tymy.iloc[0]["Tým"], f"{df_turnaj_tymy.iloc[0]['Celkem']} b.")
+                with col_m3:
+                    nej_kolo_idx = df_turnaj_hraci["Max"].idxmax()
+                    nej_hrac = df_turnaj_hraci.loc[nej_kolo_idx]
+                    st.metric("🔥 Nejlepší nához", f"{nej_hrac['Hráč']}", f"{nej_hrac['Max']} b.")
+                with col_m4:
+                    st.metric("🎯 Formát turnaje", f"{limit_h} hodů / kolo", f"{len(df_turnaj_hraci)} hráčů / {len(df_turnaj_tymy)} týmů")
+            
+            st.markdown("---")
+            
+            # Zobrazení tabulek jednotlivců a týmů
+            col_t1, col_t2 = st.columns([3, 2])
+            with col_t1:
+                st.markdown("### 👤 Pořadí jednotlivců")
+                if not df_turnaj_hraci.empty:
+                    display_tournament_table(df_turnaj_hraci, height=520)
+            with col_t2:
+                st.markdown("### 👥 Pořadí týmů")
+                if not df_turnaj_tymy.empty:
+                    display_tournament_table(df_turnaj_tymy, height=520)
 
 else:
     st.info("Žádná data k zobrazení.")
