@@ -6,6 +6,8 @@ import math
 import numpy as np
 import streamlit.components.v1 as components
 import re
+import plotly.express as px
+import plotly.graph_objects as go
 
 # --- KONFIGURACE STRÁNKY ---
 st.set_page_config(page_title="Statistiky kuželkářského turnaje", layout="wide")
@@ -192,6 +194,136 @@ def display_tournament_table(df, max_rows=10):
 def vypocitat_pokerove_body(body, umisteni, pocet_hracu):
     return math.sqrt(pocet_hracu) * (body / math.log(umisteni + 1, 2))
 
+def render_player_profile(df_final, df_raw):
+    st.markdown("## 👤 Profil hráče a detailní statistiky")
+    
+    hraci_seznam = sorted(df_final['Jméno'].unique())
+    col_sel1, col_sel2 = st.columns([2, 1])
+    with col_sel1:
+        vybrany_hrac = st.selectbox("👤 Vyberte hráče:", hraci_seznam)
+    with col_sel2:
+        filtr_hodu = st.selectbox("🎯 Filtr formátu turnaje:", ["Všechny formáty", "10 hodů / kolo", "15 hodů / kolo"])
+
+    hrac_info = df_final[df_final['Jméno'] == vybrany_hrac].iloc[0]
+    hrac_raw = df_raw[df_raw['Jméno'] == vybrany_hrac].sort_values('Datum_Sort').copy()
+    
+    if filtr_hodu == "10 hodů / kolo":
+        hrac_filtrovany = hrac_raw[hrac_raw['limit_hodu'] == 10].copy()
+    elif filtr_hodu == "15 hodů / kolo":
+        hrac_filtrovany = hrac_raw[hrac_raw['limit_hodu'] == 15].copy()
+    else:
+        hrac_filtrovany = hrac_raw.copy()
+        
+    m1, m2, m3, m4, m5, m6 = st.columns(6)
+    with m1:
+        st.metric("🏆 Zařazení", hrac_info['Liga'], f"#{int(hrac_info['Liga_Rank'])} v lize")
+    with m2:
+        st.metric("⭐ Ligové body", f"{round(hrac_info['Liga Body'] / 10, 1)} b.")
+    with m3:
+        st.metric("🎯 Celkový Ø/hod", f"{round(hrac_info['Průměr na hod'], 2)}")
+    with m4:
+        if hrac_info['Forma'] == "⬆️":
+            forma_text = f"⬆️ (+{round(hrac_info['Forma_Pct'], 1)}%)"
+        elif hrac_info['Forma'] == "⬇️":
+            forma_text = f"⬇️ ({round(hrac_info['Forma_Pct'], 1)}%)"
+        else:
+            forma_text = "➖ Stabilní"
+        st.metric("📈 Aktuální forma", forma_text)
+    with m5:
+        st.metric("🔥 Osobní rekord", f"{int(hrac_info['Max_Kolo'])} b. / kolo")
+    with m6:
+        st.metric("🎳 Turnaje", f"{int(hrac_info['Pocet_Turnaju'])} odehráno", f"{int(hrac_info['Celkem_Hodu'])} hodů")
+        
+    st.markdown("---")
+
+    if hrac_filtrovany.empty:
+        st.warning(f"Hráč **{vybrany_hrac}** nemá žádné odehrané turnaje ve formátu {filtr_hodu}.")
+        return
+
+    graf_data = []
+    for _, r in hrac_filtrovany.iterrows():
+        hody_v_turnaji = len(r['Surove_Body']) * r['limit_hodu']
+        avg_turnaj = r['Body'] / hody_v_turnaji if hody_v_turnaji > 0 else 0
+        label = f"{r['Datum_Format']} ({r['limit_hodu']}h)"
+        graf_data.append({
+            "Datum": r['Datum_Format'],
+            "Datum_Sort": r['Datum_Sort'],
+            "Label": label,
+            "Limit": f"{r['limit_hodu']} hodů",
+            "Body": r['Body'],
+            "Průměr na hod": round(avg_turnaj, 2),
+            "Umístění": f"{r['Umisteni']}. z {r['Pocet_Hracu']}",
+            "Max kolo": max(r['Surove_Body']) if r['Surove_Body'] else 0
+        })
+    
+    df_graf = pd.DataFrame(graf_data)
+    
+    col_g1, col_g2 = st.columns(2)
+    with col_g1:
+        st.markdown("### 📈 Vývoj průměru na hod")
+        fig_prumer = px.line(
+            df_graf, 
+            x="Label", 
+            y="Průměr na hod", 
+            markers=True,
+            hover_data={"Datum": True, "Průměr na hod": True, "Body": True, "Umístění": True, "Label": False},
+            title=f"Vývoj formy – {vybrany_hrac}"
+        )
+        fig_prumer.update_traces(line=dict(color="#1f77b4", width=3), marker=dict(size=9, color="#ff7f0e"))
+        fig_prumer.add_hline(y=4.0, line_dash="dash", line_color="green", annotation_text="Hranice Master Ligy (4.0)", annotation_position="bottom right")
+        fig_prumer.update_layout(xaxis_title="Turnaj", yaxis_title="Průměr na hod", hovermode="closest", height=380, margin=dict(l=20, r=20, t=40, b=20))
+        st.plotly_chart(fig_prumer, use_container_width=True)
+
+    with col_g2:
+        st.markdown("### 🎯 Body v jednotlivých kolech")
+        kola_data = []
+        for _, r in hrac_filtrovany.iterrows():
+            for k_idx, k_val in enumerate(r['Surove_Body']):
+                kola_data.append({
+                    "Turnaj": f"{r['Datum_Format']} ({r['limit_hodu']}h)",
+                    "Kolo": f"{k_idx + 1}. kolo",
+                    "Body": k_val
+                })
+        df_kola = pd.DataFrame(kola_data)
+        
+        fig_kola = px.bar(
+            df_kola, 
+            x="Turnaj", 
+            y="Body", 
+            color="Kolo", 
+            barmode="group",
+            title=f"Výsledky náhozů – {vybrany_hrac}",
+            color_discrete_sequence=px.colors.qualitative.Safe
+        )
+        fig_kola.update_layout(xaxis_title="Turnaj", yaxis_title="Počet bodů v kole", height=380, margin=dict(l=20, r=20, t=40, b=20))
+        st.plotly_chart(fig_kola, use_container_width=True)
+
+    st.markdown("### 📜 Historie turnajů hráče")
+    hrac_turnaje_rows = []
+    max_kol_hrac = max((len(r['Surove_Body']) for _, r in hrac_filtrovany.iterrows()), default=4)
+    
+    for _, r in hrac_filtrovany.sort_values('Datum_Sort', ascending=False).iterrows():
+        rounds = r['Surove_Body']
+        hody_t = len(rounds) * r['limit_hodu']
+        prum_t = r['Body'] / hody_t if hody_t > 0 else 0
+        
+        row_t = {
+            "Datum": r['Datum_Format'],
+            "Formát": f"{r['limit_hodu']} hodů/kolo",
+            "Umístění": f"{r['Umisteni']}. / {r['Pocet_Hracu']}"
+        }
+        for i in range(max_kol_hrac):
+            row_t[f"{i+1}."] = rounds[i] if i < len(rounds) else "-"
+        row_t["Celkem"] = r['Body']
+        row_t["Ø/hod"] = round(prum_t, 2)
+        row_t["Max"] = max(rounds) if rounds else 0
+        hrac_turnaje_rows.append(row_t)
+        
+    df_hrac_turnaje = pd.DataFrame(hrac_turnaje_rows)
+    if not df_hrac_turnaje.empty:
+        df_hrac_turnaje.insert(0, "", range(1, len(df_hrac_turnaje) + 1))
+        display_tournament_table(df_hrac_turnaje)
+
 # --- HLAVNÍ LOGIKA ---
 all_stats = []
 if os.path.exists(DATA_FOLDER):
@@ -203,9 +335,25 @@ if os.path.exists(DATA_FOLDER):
             turnaj_hraci = [{"Jméno": n.strip(), "Body": sum(s), "Surove_Body": s} for team in data.get('teams', {}).values() for n, s in team.items()]
             turnaj_hraci.sort(key=lambda x: x['Body'], reverse=True)
             match = re.search(r'(\d{4})-(\d{2})-(\d{2})', file_name)
-            datum_sort = match.group(0) if match else file_name
+            if match:
+                year, month, day = match.groups()
+                datum_format = f"{day}. {month}. {year}"
+                datum_sort = f"{year}-{month}-{day}"
+            else:
+                datum_format = file_name.replace('.json', '')
+                datum_sort = file_name
+                
             for idx, hrac in enumerate(turnaj_hraci):
-                all_stats.append({**hrac, "Ligove_Body": vypocitat_pokerove_body(hrac['Body'], idx + 1, len(turnaj_hraci)), "Turnaj": file_name, "Datum_Sort": datum_sort, "limit_hodu": limit_hodu})
+                all_stats.append({
+                    **hrac, 
+                    "Ligove_Body": vypocitat_pokerove_body(hrac['Body'], idx + 1, len(turnaj_hraci)), 
+                    "Turnaj": file_name, 
+                    "Datum_Sort": datum_sort, 
+                    "Datum_Format": datum_format,
+                    "limit_hodu": limit_hodu,
+                    "Umisteni": idx + 1,
+                    "Pocet_Hracu": len(turnaj_hraci)
+                })
 
 if all_stats:
     df_raw = pd.DataFrame(all_stats)
@@ -216,6 +364,7 @@ if all_stats:
         odchylka = np.std(vsechny_hody) if len(vsechny_hody) > 0 else 0
         skokan = 0
         forma = "➖"
+        forma_pct = 0.0
         
         if len(group) >= 2:
             s = group.sort_values('Datum_Sort')
@@ -232,6 +381,7 @@ if all_stats:
             
             if prev_avg > 0:
                 rozdil_pct = ((last_avg - prev_avg) / prev_avg) * 100
+                forma_pct = rozdil_pct
                 if rozdil_pct >= 5.0:
                     forma = "⬆️"
                 elif rozdil_pct <= -5.0:
@@ -243,19 +393,28 @@ if all_stats:
         
         # Průměr na turnaj, aby čísla nerostla do nekonečna
         prumerne_liga_body = (group['Ligove_Body'].sum() + max(0, (50 - odchylka) / 20) + skokan) / len(group)
+        prumer_na_hod = group['Body'].sum() / celkem_hodů if celkem_hodů > 0 else 0
+        max_kolo = max((max(row['Surove_Body']) for _, row in group.iterrows() if len(row['Surove_Body']) > 0), default=0)
         
         return pd.Series({
             "Liga Body": prumerne_liga_body, 
-            "Průměr na hod": group['Body'].sum() / celkem_hodů if celkem_hodů > 0 else 0,
-            "Forma": forma
+            "Průměr na hod": prumer_na_hod,
+            "Forma": forma,
+            "Forma_Pct": forma_pct,
+            "Pocet_Turnaju": len(group),
+            "Celkem_Hodu": celkem_hodů,
+            "Max_Kolo": max_kolo,
+            "Celkem_Bodu": group['Body'].sum()
         })
 
     df_final = df_raw.groupby('Jméno').apply(process_player, include_groups=False).reset_index()
+    df_final['Liga_Rank'] = df_final['Liga Body'].rank(method='min', ascending=False).astype(int)
+    df_final['Liga'] = np.where(df_final['Průměr na hod'] > 4.0, "🏆 Master Liga", "🥈 Challenge Liga")
 
     # Vykreslení aplikace
     st.title("📊 Statistiky kuželkářského turnaje")
     
-    tab1, tab2, tab3, tab4 = st.tabs(["📊 Ligová tabulka", "🎯 Průměr na hod", "🏆 Top rekordy 10/15", "📜 Historie turnajů"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Ligová tabulka", "🎯 Průměr na hod", "👤 Profil hráče", "🏆 Top rekordy 10/15", "📜 Historie turnajů"])
 
     with tab1:
         PRUH_LIGY = 4.0
@@ -274,6 +433,9 @@ if all_stats:
             display_table(df_final, 'Průměr na hod', ['Jméno', 'Ø/hod', 'Liga Body', 'Forma'])
 
     with tab3:
+        render_player_profile(df_final, df_raw)
+
+    with tab4:
         # Rozdělíme záložku na dva sloupce
         c1, c2 = st.columns(2)
     
@@ -285,7 +447,7 @@ if all_stats:
             st.markdown("### 🔥 Top 10 (15 hodů)")
             display_table(get_rekordy(15), 'Max', ['Jméno', 'Max', 'Datum'])
 
-    with tab4:
+    with tab5:
         turnaje = get_all_tournaments()
         if not turnaje:
             st.info("Nebyly nalezeny žádné uložené turnaje.")
