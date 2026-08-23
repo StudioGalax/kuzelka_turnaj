@@ -695,7 +695,7 @@ if all_stats:
               * <span style="color:#28a745;font-weight:bold;">▲ Rostoucí forma:</span> Zlepšení průměru na hod o **+5.0 % a více**.
               * <span style="color:#dc3545;font-weight:bold;">▼ Klesající forma:</span> Pokles průměru na hod o **-5.0 % a více**.
               * <span style="color:#6c757d;font-weight:bold;">▬ Stabilní forma:</span> Výkon v toleranci $\\pm 5.0\\,\\%$.
-            """)
+            """, unsafe_allow_html=True)
 
             st.markdown("---")
             st.markdown("### 👑 6. Top rekordy (10 a 15 hodů)")
