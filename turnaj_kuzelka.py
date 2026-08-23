@@ -454,7 +454,7 @@ if is_admin:
                         "4.": h[3] if len(h) > 3 else 0,
                         "Celkem": celkem,
                         "Max": max_kolo,
-                        "Ø/hod": round(prum_hod, 2)
+                        "Ø/hod": f"{prum_hod:.2f}"
                     })
                     
                     odehrana_kola = [x for x in h if x > 0]
@@ -477,7 +477,7 @@ if is_admin:
                     "Tým": t,
                     "Celkem": team_score,
                     "Počet hráčů": p_cnt,
-                    "Ø na hráče": round(team_avg, 1)
+                    "Ø na hráče": f"{team_avg:.2f}"
                 })
             df_tymy = pd.DataFrame(team_totals).sort_values("Celkem", ascending=False).reset_index(drop=True)
             df_tymy.insert(0, "Pořadí", range(1, len(df_tymy) + 1))
@@ -486,7 +486,7 @@ if is_admin:
             if stabilita_hraci:
                 nej_st = min(stabilita_hraci, key=lambda x: x["std_hod"])
                 stab_j = f"{nej_st['Hráč']} ({nej_st['Tým']})"
-                stab_d = f"±{round(nej_st['std_hod'], 2)} Ø/hod (±{round(nej_st['std_body'], 1)} b.)"
+                stab_d = f"±{nej_st['std_hod']:.2f} Ø/hod (±{nej_st['std_body']:.2f} b.)"
             else:
                 stab_j, stab_d = "—", "Nedostatek kol"
                 
@@ -495,7 +495,7 @@ if is_admin:
             skokani = []
             for r in rows_j:
                 pn = r["Hráč"]
-                ca = r["Ø/hod"]
+                ca = float(r["Ø/hod"])
                 if pn in prev_avgs and r["Celkem"] > 0:
                     pa = prev_avgs[pn]
                     diff = ca - pa
@@ -506,7 +506,7 @@ if is_admin:
             if skokani:
                 nej_sk = max(skokani, key=lambda x: x["diff"])
                 skokan_j = f"{nej_sk['Hráč']} ({nej_sk['Tým']})"
-                skokan_d = f"+{round(nej_sk['diff'], 2)} Ø/hod (+{round(nej_sk['pct'], 1)} %)"
+                skokan_d = f"+{nej_sk['diff']:.2f} Ø/hod (+{nej_sk['pct']:.1f} %)"
             else:
                 skokan_j, skokan_d = "—", "1. turnaj / beze skoku"
 
