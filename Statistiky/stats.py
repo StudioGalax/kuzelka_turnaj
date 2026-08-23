@@ -99,7 +99,7 @@ def display_table(df, sort_by, columns, max_rows=10):
     iframe_height = min(calc_height, container_max_height + 15)
 
     # HTML generování
-    html_table = df_show.to_html(index=False, classes='table-zebra', border=0)
+    html_table = df_show.to_html(index=False, classes='table-zebra', border=0, escape=False)
     
     html_content = f"""
     <style>
@@ -109,6 +109,7 @@ def display_table(df, sort_by, columns, max_rows=10):
         .table-zebra tr:nth-of-type(odd) {{ background-color: #ffffff; }}
         .table-zebra th, .table-zebra td {{ padding: 8px 10px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; text-align: left; color: #1a202c; }}
         .table-zebra th:first-child, .table-zebra td:first-child {{ width: 30px; text-align: center; font-weight: bold; }}
+        .table-zebra th:nth-child(n+3), .table-zebra td:nth-child(n+3) {{ text-align: center; }}
         .table-zebra th {{ border-bottom: 2px solid #cbd5e0; background-color: #edf2f7; color: #2d3748; font-weight: 600; position: sticky; top: 0; z-index: 1; }}
         .scroll-container {{ max-height: {container_max_height}px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; }}
     </style>
@@ -246,13 +247,13 @@ def render_player_profile(df_final, df_raw):
     with m3:
         st.metric("🎯 Celkový Ø/hod", f"{round(hrac_info['Průměr na hod'], 2)}")
     with m4:
-        if hrac_info['Forma'] == "⬆️":
-            forma_text = f"⬆️ (+{round(hrac_info['Forma_Pct'], 1)}%)"
-        elif hrac_info['Forma'] == "⬇️":
-            forma_text = f"⬇️ ({round(hrac_info['Forma_Pct'], 1)}%)"
+        if hrac_info['Forma_Pct'] >= 5.0:
+            st.metric("📈 Aktuální forma", "Rostoucí", f"+{round(hrac_info['Forma_Pct'], 1)} %")
+        elif hrac_info['Forma_Pct'] <= -5.0:
+            st.metric("📉 Aktuální forma", "Klesající", f"{round(hrac_info['Forma_Pct'], 1)} %")
         else:
-            forma_text = "➖ Stabilní"
-        st.metric("📈 Aktuální forma", forma_text)
+            delta_val = f"{round(hrac_info['Forma_Pct'], 1)} %" if hrac_info['Pocet_Turnaju'] >= 2 else "1. turnaj"
+            st.metric("📊 Aktuální forma", "Stabilní", delta_val, delta_color="off")
     with m5:
         st.metric("🔥 Osobní rekord", f"{int(hrac_info['Max_Kolo'])} b. / kolo")
     with m6:
@@ -387,7 +388,7 @@ if all_stats:
         celkem_hodů = sum(len(row['Surove_Body']) * row['limit_hodu'] for _, row in group.iterrows())
         odchylka = np.std(vsechny_hody) if len(vsechny_hody) > 0 else 0
         skokan = 0
-        forma = "➖"
+        forma = '<span style="color:#6c757d;font-weight:bold;font-size:15px;">▬</span>'
         forma_pct = 0.0
         
         if len(group) >= 2:
@@ -407,13 +408,13 @@ if all_stats:
                 rozdil_pct = ((last_avg - prev_avg) / prev_avg) * 100
                 forma_pct = rozdil_pct
                 if rozdil_pct >= 5.0:
-                    forma = "⬆️"
+                    forma = '<span style="color:#28a745;font-weight:bold;font-size:16px;">▲</span>'
                 elif rozdil_pct <= -5.0:
-                    forma = "⬇️"
+                    forma = '<span style="color:#dc3545;font-weight:bold;font-size:16px;">▼</span>'
                 else:
-                    forma = "➖"
+                    forma = '<span style="color:#6c757d;font-weight:bold;font-size:15px;">▬</span>'
             else:
-                forma = "⬆️" if last_avg > 0 else "➖"
+                forma = '<span style="color:#28a745;font-weight:bold;font-size:16px;">▲</span>' if last_avg > 0 else '<span style="color:#6c757d;font-weight:bold;font-size:15px;">▬</span>'
         
         # Průměr na turnaj, aby čísla nerostla do nekonečna
         prumerne_liga_body = (group['Ligove_Body'].sum() + max(0, (50 - odchylka) / 20) + skokan) / len(group)
@@ -691,9 +692,9 @@ if all_stats:
             Hráč za tento skok navíc získává přímý bonus do ligových bodů: $\\text{Bonus} = \\max(0, \\Delta \\varnothing \\times 2)$.  
             *(U prvního turnaje v historii nebo u nováčka se zobrazuje pomlčka, protože chybí srovnávací data).*
             * **📈 Ukazatel formy (v profilu a tabulce):**
-              * ⬆️ **Rostoucí forma:** Zlepšení průměru na hod o **+5.0 % a více**.
-              * ⬇️ **Klesající forma:** Pokles průměru na hod o **-5.0 % a více**.
-              * ➖ **Stabilní forma:** Výkon v toleranci $\\pm 5.0\\,\\%$.
+              * <span style="color:#28a745;font-weight:bold;">▲ Rostoucí forma:</span> Zlepšení průměru na hod o **+5.0 % a více**.
+              * <span style="color:#dc3545;font-weight:bold;">▼ Klesající forma:</span> Pokles průměru na hod o **-5.0 % a více**.
+              * <span style="color:#6c757d;font-weight:bold;">▬ Stabilní forma:</span> Výkon v toleranci $\\pm 5.0\\,\\%$.
             """)
 
             st.markdown("---")
