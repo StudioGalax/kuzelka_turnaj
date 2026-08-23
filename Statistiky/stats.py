@@ -557,7 +557,60 @@ if all_stats:
                 
             # Rychlé shrnutí / metriky turnaje
             if not df_turnaj_hraci.empty and not df_turnaj_tymy.empty:
-                col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+                # 1. Nejvyrovnanější výkon (nejmenší směrodatná odchylka průměru na hod mezi koly)
+                stabilita_hraci = []
+                for team_name, players in teams_dict.items():
+                    for player_name, rounds in players.items():
+                        if len(rounds) >= 2:
+                            r_avgs = [r / limit_h for r in rounds]
+                            std_hod = np.std(r_avgs)
+                            std_body = np.std(rounds)
+                            stabilita_hraci.append({
+                                "Hráč": player_name,
+                                "std_hod": std_hod,
+                                "std_body": std_body
+                            })
+                
+                if stabilita_hraci:
+                    nej_stabilni = min(stabilita_hraci, key=lambda x: x["std_hod"])
+                    stabilni_jmeno = nej_stabilni["Hráč"]
+                    stabilni_popis = f"±{round(nej_stabilni['std_hod'], 2)} Ø/hod (±{round(nej_stabilni['std_body'], 1)} b.)"
+                else:
+                    stabilni_jmeno = "—"
+                    stabilni_popis = "Nedostatek kol"
+
+                # 2. Skokan turnaje (největší nárůst průměru na hod oproti předchozímu odehranému turnaji)
+                skokani = []
+                for team_name, players in teams_dict.items():
+                    for player_name, rounds in players.items():
+                        if rounds:
+                            curr_hody = len(rounds) * limit_h
+                            curr_avg = sum(rounds) / curr_hody if curr_hody > 0 else 0
+                            
+                            prev_tourneys = df_raw[(df_raw['Jméno'] == player_name) & (df_raw['Datum_Sort'] < turnaj['sort_key'])].sort_values('Datum_Sort')
+                            if not prev_tourneys.empty:
+                                prev_row = prev_tourneys.iloc[-1]
+                                prev_hody = len(prev_row['Surove_Body']) * prev_row['limit_hodu']
+                                prev_avg = prev_row['Body'] / prev_hody if prev_hody > 0 else 0
+                                
+                                diff_avg = curr_avg - prev_avg
+                                pct_diff = ((curr_avg - prev_avg) / prev_avg * 100) if prev_avg > 0 else 0
+                                if diff_avg > 0:
+                                    skokani.append({
+                                        "Hráč": player_name,
+                                        "diff_avg": diff_avg,
+                                        "pct_diff": pct_diff
+                                    })
+                
+                if skokani:
+                    nej_skokan = max(skokani, key=lambda x: x["diff_avg"])
+                    skokan_jmeno = nej_skokan["Hráč"]
+                    skokan_popis = f"+{round(nej_skokan['diff_avg'], 2)} Ø/hod (+{round(nej_skokan['pct_diff'], 1)}%)"
+                else:
+                    skokan_jmeno = "—"
+                    skokan_popis = "1. turnaj / beze skoku"
+
+                col_m1, col_m2, col_m3, col_m4, col_m5, col_m6 = st.columns(6)
                 with col_m1:
                     st.metric("🥇 Vítěz jednotlivců", df_turnaj_hraci.iloc[0]["Hráč"], f"{df_turnaj_hraci.iloc[0]['Celkem']} b.")
                 with col_m2:
@@ -567,7 +620,11 @@ if all_stats:
                     nej_hrac = df_turnaj_hraci.loc[nej_kolo_idx]
                     st.metric("🔥 Nejlepší nához", f"{nej_hrac['Hráč']}", f"{nej_hrac['Max']} b.")
                 with col_m4:
-                    st.metric("🎯 Formát turnaje", f"{limit_h} hodů / kolo", f"{len(df_turnaj_hraci)} hráčů / {len(df_turnaj_tymy)} týmů")
+                    st.metric("🎯 Nejvyrovnanější hody", stabilni_jmeno, stabilni_popis)
+                with col_m5:
+                    st.metric("🚀 Skokan turnaje", skokan_jmeno, skokan_popis)
+                with col_m6:
+                    st.metric("📋 Formát turnaje", f"{limit_h} hodů / kolo", f"{len(df_turnaj_hraci)} hráčů / {len(df_turnaj_tymy)} týmů")
             
             st.markdown("---")
             
