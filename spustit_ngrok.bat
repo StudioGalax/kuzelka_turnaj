@@ -8,5 +8,6 @@ echo ==========================================
 echo.
 echo Nech toto okno otevrene po celou dobu turnaje!
 echo.
-ngrok http 8501
+"%~dp0ngrok.exe" http 8501
 pause
+

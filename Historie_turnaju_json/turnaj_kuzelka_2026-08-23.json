@@ -8,10 +8,10 @@
                 0
             ],
             "Hanes Č.": [
-                0,
-                0,
-                0,
-                0
+                69,
+                71,
+                59,
+                80
             ],
             "Pulina": [
                 0,
@@ -20,18 +20,18 @@
                 0
             ],
             "Amos": [
-                0,
-                0,
-                0,
-                0
+                70,
+                77,
+                83,
+                80
             ]
         },
         "Devítky": {
             "Prdy": [
-                0,
-                0,
-                0,
-                0
+                65,
+                70,
+                68,
+                79
             ],
             "Karlos": [
                 0,
@@ -53,6 +53,6 @@
             ]
         }
     },
-    "tournament_started": false,
+    "tournament_started": true,
     "limit_hodu": 10
 }

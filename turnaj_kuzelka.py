@@ -325,20 +325,38 @@ if is_admin:
             # 1. Příprava seznamu
             hraci_mapa = {}
             vsechni_hraci = []
+            nedohrani_hraci = []
+            
             for t_name, players in data["teams"].items():
-                for p_name in players.keys():
+                for p_name, hry in players.items():
                     oznaceni = f"{p_name} ({t_name})"
                     vsechni_hraci.append(oznaceni)
                     hraci_mapa[oznaceni] = (t_name, p_name)
+                    if 0 in hry:  # Hráč ještě nemá dohráno
+                        nedohrani_hraci.append(oznaceni)
             
-            # 2. Výběr hráče
-            vyber = st.selectbox(
-            "Vyber hráče:", 
-            sorted(vsechni_hraci), 
-            key=f"vyber_hraca_{st.session_state['vyber_version']}", # Dynamický klíč
-            index=None,
-            placeholder="Klikni a piš jméno..."
-        )
+            col_sel_h, col_chk_h = st.columns([3, 2])
+            with col_chk_h:
+                st.write("")
+                st.write("")
+                zobrazit_vsechny = st.checkbox("🔍 Zobrazit i dohrané hráče (pro opravu)", value=False, key="chk_show_all_players")
+            
+            seznam_k_vyberu = sorted(vsechni_hraci) if zobrazit_vsechny else sorted(nedohrani_hraci)
+            
+            with col_sel_h:
+                if not seznam_k_vyberu and not zobrazit_vsechny and vsechni_hraci:
+                    st.success("🎉 Všichni hráči mají odehrána všechna 4 kola!")
+                    vyber = None
+                else:
+                    pocet_zbyva = len(nedohrani_hraci)
+                    label_text = f"Vyber hráče k zápisu (zbývá {pocet_zbyva} hráčů):" if not zobrazit_vsechny else "Vyber hráče:"
+                    vyber = st.selectbox(
+                        label_text, 
+                        seznam_k_vyberu, 
+                        key=f"vyber_hraca_{st.session_state['vyber_version']}", # Dynamický klíč
+                        index=None,
+                        placeholder="Klikni a piš jméno..."
+                    )
 
             # 3. Zápis (pouze pokud je hráč vybraný)
             if vyber:
