@@ -199,15 +199,99 @@ if is_admin:
 
         if data["teams"]:
             st.markdown("---")
-            st.write("📋 **Registrované týmy:**", ", ".join(data["teams"].keys()))
-            with st.expander("🛠️ Správa členů týmu"):
-                t_name = st.selectbox("Vyber tým pro úpravu", list(data["teams"].keys()))
-                if t_name:
-                    p_name = st.selectbox("Vyber hráče k odstranění", list(data["teams"][t_name].keys()))
-                    if st.button("Odstranit hráče z týmu"):
-                        del data["teams"][t_name][p_name]
-                        save_data(data)
-                        st.rerun()
+            st.subheader("📋 Registrované týmy a sestavy")
+            
+            cols_t = st.columns(min(len(data["teams"]), 4))
+            for idx, (t_k, t_v) in enumerate(data["teams"].items()):
+                with cols_t[idx % 4]:
+                    st.markdown(f"**🏅 {t_k}**")
+                    for p_idx, p_k in enumerate(t_v.keys()):
+                        st.caption(f"{p_idx + 1}. {p_k}")
+            
+            with st.expander("🛠️ Úprava sestavy týmu a přehazování hráčů"):
+                tab_ed1, tab_ed2 = st.tabs(["✏️ Upravit tým", "🔄 Prohodit hráče"])
+                
+                with tab_ed1:
+                    t_edit_name = st.selectbox("Tým k úpravě:", list(data["teams"].keys()), key="sel_t_edit")
+                    if t_edit_name:
+                        cur_p = list(data["teams"][t_edit_name].keys())
+                        new_t_name = st.text_input("Název týmu:", value=t_edit_name, key="ed_t_name")
+                        
+                        df_h_ed = load_hraci_csv()
+                        jmena_ed = sorted(df_h_ed["Jméno"].tolist()) if not df_h_ed.empty else []
+                        
+                        def get_p_ed(idx, col):
+                            cur = cur_p[idx] if idx < len(cur_p) else ""
+                            with col:
+                                opts = ["-- Ponechat --"] + jmena_ed + ["➕ [Zadat nové jméno]"]
+                                d_i = opts.index(cur) if cur in opts else 0
+                                sel = st.selectbox(f"Hráč {idx+1} ({cur}):", opts, index=d_i, key=f"te_p{idx}")
+                                if sel == "➕ [Zadat nové jméno]":
+                                    cv = st.text_input(f"Nové jméno H{idx+1}:", key=f"te_c{idx}").strip()
+                                    return cv if cv else cur
+                                return cur if sel == "-- Ponechat --" else sel
+
+                        c1_ed, c2_ed = st.columns(2)
+                        p_e1 = get_p_ed(0, c1_ed)
+                        p_e2 = get_p_ed(1, c1_ed)
+                        p_e3 = get_p_ed(2, c2_ed)
+                        p_e4 = get_p_ed(3, c2_ed)
+
+                        save_csv_ed = st.checkbox("💾 Uložit nové hráče do hraci.csv", value=True, key="chk_ed_csv")
+                        
+                        cb1, cb2 = st.columns([2, 1])
+                        with cb1:
+                            if st.button("💾 Uložit změny v týmu", type="primary", key="btn_save_t_edit"):
+                                if not new_t_name.strip():
+                                    st.error("Název týmu nesmí být prázdný.")
+                                elif not (p_e1 and p_e2 and p_e3 and p_e4) or len({p_e1, p_e2, p_e3, p_e4}) < 4:
+                                    st.error("Všichni 4 hráči musí být vyplněni a unikátní.")
+                                else:
+                                    for p in [p_e1, p_e2, p_e3, p_e4]:
+                                        if save_csv_ed and not df_h_ed.empty:
+                                            if df_h_ed[df_h_ed["Jméno"].str.lower() == p.lower()].empty:
+                                                pridat_hrace_do_csv(p)
+                                    
+                                    old_dict = data["teams"].pop(t_edit_name)
+                                    new_dict = {}
+                                    for np, op in zip([p_e1, p_e2, p_e3, p_e4], cur_p):
+                                        sc = old_dict.get(op, [0, 0, 0, 0])
+                                        new_dict[np] = sc if np == op else [0, 0, 0, 0]
+                                    
+                                    data["teams"][new_t_name.strip()] = new_dict
+                                    save_data(data)
+                                    st.success(f"Tým **{new_t_name}** upraven!")
+                                    st.rerun()
+
+                        with cb2:
+                            if st.button("🗑️ Smazat tým", key="btn_del_t"):
+                                del data["teams"][t_edit_name]
+                                save_data(data)
+                                st.warning(f"Tým **{t_edit_name}** byl smazán.")
+                                st.rerun()
+
+                with tab_ed2:
+                    if len(data["teams"]) >= 2:
+                        t_list = list(data["teams"].keys())
+                        c_s1, c_s2 = st.columns(2)
+                        with c_s1:
+                            sw_t1 = st.selectbox("1. Tým:", t_list, index=0, key="sw_t1")
+                            sw_p1 = st.selectbox("1. Hráč:", list(data["teams"][sw_t1].keys()), key="sw_p1")
+                        with c_s2:
+                            o_teams = [t for t in t_list if t != sw_t1]
+                            sw_t2 = st.selectbox("2. Tým:", o_teams, index=0, key="sw_t2")
+                            sw_p2 = st.selectbox("2. Hráč:", list(data["teams"][sw_t2].keys()), key="sw_p2")
+                        
+                        if st.button("🔄 Prohodit tyto 2 hráče", type="primary", key="btn_swap_p"):
+                            sc1 = data["teams"][sw_t1].pop(sw_p1, [0, 0, 0, 0])
+                            sc2 = data["teams"][sw_t2].pop(sw_p2, [0, 0, 0, 0])
+                            data["teams"][sw_t1][sw_p2] = sc2
+                            data["teams"][sw_t2][sw_p1] = sc1
+                            save_data(data)
+                            st.success(f"Prohozeno: **{sw_p1}** ({sw_t1}) 🔁 **{sw_p2}** ({sw_t2})")
+                            st.rerun()
+                    else:
+                        st.info("Pro prohození hráčů musí být zaregistrovány alespoň 2 týmy.")
 
         with st.expander("👥 Databáze hráčů (hraci.csv) – přehled a správa"):
             df_hraci_curr = load_hraci_csv()
