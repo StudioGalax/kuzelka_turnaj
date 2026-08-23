@@ -4,7 +4,8 @@ import json
 import os
 import requests
 from datetime import datetime
-import os
+import numpy as np
+import re
 
 # 1. DEFINICE CESTY
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -111,6 +112,36 @@ def get_file_path():
     datum_dnes = datetime.now().strftime("%Y-%m-%d")
     nazev = f"turnaj_kuzelka_{datum_dnes}.json"
     return os.path.join(DATA_DIR, nazev)
+
+def get_previous_player_averages(current_filepath=None):
+    player_history = {}
+    if os.path.exists(DATA_DIR):
+        file_list = [f for f in os.listdir(DATA_DIR) if f.endswith('.json')]
+        parsed_files = []
+        for fn in file_list:
+            fp = os.path.join(DATA_DIR, fn)
+            if current_filepath and os.path.abspath(fp) == os.path.abspath(current_filepath):
+                continue
+            m = re.search(r'(\d{4})-(\d{2})-(\d{2})', fn)
+            sort_key = f"{m.group(1)}-{m.group(2)}-{m.group(3)}" if m else fn
+            parsed_files.append((sort_key, fp))
+        
+        parsed_files.sort(key=lambda x: x[0])
+        for _, fp in parsed_files:
+            try:
+                with open(fp, 'r', encoding='utf-8') as f:
+                    d = json.load(f)
+                limit = d.get("limit_hodu", 15)
+                for team in d.get('teams', {}).values():
+                    for name, rounds in team.items():
+                        name_clean = name.strip()
+                        if rounds and sum(rounds) > 0:
+                            hody = len(rounds) * limit
+                            avg = sum(rounds) / hody if hody > 0 else 0
+                            player_history[name_clean] = avg
+            except Exception:
+                continue
+    return player_history
 
 data = load_data()
 is_admin = st.query_params.get("admin") == "yes"
@@ -402,20 +433,122 @@ if is_admin:
             df.insert(0, "Pořadí", range(1, len(df) + 1))
             st.table(df)
         with tab3:
-            st.header("Oficiální vyhlášení")
-            rows = [{"Pořadí": 0, "Hráč": p, "Tým": t, "Body": sum(d)} for t, ps in data["teams"].items() for p, d in ps.items()]
-            df = pd.DataFrame(rows).sort_values("Body", ascending=False).reset_index(drop=True)
-            df["Pořadí"] = range(1, len(df) + 1)
-            st.subheader("Kompletní pořadí jednotlivců")
-            st.table(df)
-            worst = df.nsmallest(1, "Body").copy()
-            worst["Pořadí"] = "💩"
-            st.subheader("Nejslabší jednotlivec")
-            st.table(worst)
-            df_t = df.groupby("Tým")["Body"].sum().reset_index().sort_values("Body", ascending=False).reset_index(drop=True)
-            df_t.insert(0, "Pořadí", range(1, len(df_t) + 1))
-            st.subheader("Pořadí všech týmů")
-            st.table(df_t)
+            st.header("🏆 Oficiální vyhlášení turnaje")
+            limit_h = data.get("limit_hodu", 15)
+            
+            rows_j = []
+            stabilita_hraci = []
+            for t, ps in data["teams"].items():
+                for p, h in ps.items():
+                    celkem = sum(h)
+                    max_kolo = max(h) if h else 0
+                    hody_cnt = len(h) * limit_h
+                    prum_hod = celkem / hody_cnt if hody_cnt > 0 else 0
+                    
+                    rows_j.append({
+                        "Hráč": p,
+                        "Tým": t,
+                        "1.": h[0] if len(h) > 0 else 0,
+                        "2.": h[1] if len(h) > 1 else 0,
+                        "3.": h[2] if len(h) > 2 else 0,
+                        "4.": h[3] if len(h) > 3 else 0,
+                        "Celkem": celkem,
+                        "Max": max_kolo,
+                        "Ø/hod": round(prum_hod, 2)
+                    })
+                    
+                    odehrana_kola = [x for x in h if x > 0]
+                    if len(odehrana_kola) >= 2:
+                        stabilita_hraci.append({
+                            "Hráč": p, "Tým": t,
+                            "std_hod": np.std([x / limit_h for x in h]),
+                            "std_body": np.std(h)
+                        })
+            
+            df_vysledky = pd.DataFrame(rows_j).sort_values("Celkem", ascending=False).reset_index(drop=True)
+            df_vysledky.insert(0, "Pořadí", range(1, len(df_vysledky) + 1))
+            
+            team_totals = []
+            for t, ps in data["teams"].items():
+                team_score = sum(sum(h) for h in ps.values())
+                p_cnt = len(ps)
+                team_avg = team_score / p_cnt if p_cnt > 0 else 0
+                team_totals.append({
+                    "Tým": t,
+                    "Celkem": team_score,
+                    "Počet hráčů": p_cnt,
+                    "Ø na hráče": round(team_avg, 1)
+                })
+            df_tymy = pd.DataFrame(team_totals).sort_values("Celkem", ascending=False).reset_index(drop=True)
+            df_tymy.insert(0, "Pořadí", range(1, len(df_tymy) + 1))
+            
+            # 1. Pan Stabilita
+            if stabilita_hraci:
+                nej_st = min(stabilita_hraci, key=lambda x: x["std_hod"])
+                stab_j = f"{nej_st['Hráč']} ({nej_st['Tým']})"
+                stab_d = f"±{round(nej_st['std_hod'], 2)} Ø/hod (±{round(nej_st['std_body'], 1)} b.)"
+            else:
+                stab_j, stab_d = "—", "Nedostatek kol"
+                
+            # 2. Skokan turnaje
+            prev_avgs = get_previous_player_averages(get_file_path())
+            skokani = []
+            for r in rows_j:
+                pn = r["Hráč"]
+                ca = r["Ø/hod"]
+                if pn in prev_avgs and r["Celkem"] > 0:
+                    pa = prev_avgs[pn]
+                    diff = ca - pa
+                    pct = (diff / pa * 100) if pa > 0 else 0
+                    if diff > 0:
+                        skokani.append({"Hráč": pn, "Tým": r["Tým"], "diff": diff, "pct": pct})
+            
+            if skokani:
+                nej_sk = max(skokani, key=lambda x: x["diff"])
+                skokan_j = f"{nej_sk['Hráč']} ({nej_sk['Tým']})"
+                skokan_d = f"+{round(nej_sk['diff'], 2)} Ø/hod (+{round(nej_sk['pct'], 1)} %)"
+            else:
+                skokan_j, skokan_d = "—", "1. turnaj / beze skoku"
+
+            # 3. Nejlepší nához & Vítězové
+            if not df_vysledky.empty:
+                max_idx = df_vysledky["Max"].idxmax()
+                max_r = df_vysledky.loc[max_idx]
+                nahoz_j = f"{max_r['Hráč']} ({max_r['Tým']})"
+                nahoz_d = f"{int(max_r['Max'])} b. v jednom kole"
+                vit_j = f"{df_vysledky.iloc[0]['Hráč']} ({df_vysledky.iloc[0]['Tým']})"
+                vit_b = f"{df_vysledky.iloc[0]['Celkem']} b."
+                w_j = f"{df_vysledky.iloc[-1]['Hráč']} ({df_vysledky.iloc[-1]['Tým']})"
+                w_b = f"{df_vysledky.iloc[-1]['Celkem']} b."
+            else:
+                nahoz_j, nahoz_d, vit_j, vit_b, w_j, w_b = "—", "", "—", "", "—", ""
+            
+            vit_t_j = df_tymy.iloc[0]["Tým"] if not df_tymy.empty else "—"
+            vit_t_b = f"{df_tymy.iloc[0]['Celkem']} b." if not df_tymy.empty else ""
+
+            st.markdown("### 🏅 Ocenění turnaje")
+            c_oc1, c_oc2, c_oc3 = st.columns(3)
+            with c_oc1:
+                st.metric("🥇 Vítěz jednotlivců", vit_j, vit_b)
+            with c_oc2:
+                st.metric("🏆 Vítězný tým", vit_t_j, vit_t_b)
+            with c_oc3:
+                st.metric("🔥 Nejlepší nához", nahoz_j, nahoz_d)
+
+            c_oc4, c_oc5, c_oc6 = st.columns(3)
+            with c_oc4:
+                st.metric("🎯 Nejvyrovnanější hody", stab_j, stab_d)
+            with c_oc5:
+                st.metric("🚀 Skokan turnaje", skokan_j, skokan_d)
+            with c_oc6:
+                st.metric("💩 Cena útěchy (poslední)", w_j, w_b)
+
+            st.markdown("---")
+            st.subheader("👤 Kompletní pořadí jednotlivců")
+            st.table(df_vysledky)
+            
+            st.subheader("👥 Pořadí všech týmů")
+            st.table(df_tymy)
 
 # --- DIVÁCI ---
 else:
