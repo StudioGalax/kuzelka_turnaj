@@ -462,7 +462,7 @@ if all_stats:
 
     st.title("📊 Statistiky kuželkářského turnaje")
     
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Ligová tabulka", "🎯 Průměr na hod", "👤 Profil hráče", "🏆 Top rekordy 10/15", "📜 Historie turnajů"])
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📊 Ligová tabulka", "🎯 Průměr na hod", "👤 Profil hráče", "🏆 Top rekordy 10/15", "📜 Historie turnajů", "📖 Pravidla a bodování"])
 
     with tab1:
         PRUH_LIGY = 4.0
@@ -638,6 +638,69 @@ if all_stats:
                 st.markdown("### 👥 Pořadí týmů")
                 if not df_turnaj_tymy.empty:
                     display_tournament_table(df_turnaj_tymy)
+
+    with tab6:
+        st.markdown("## 📖 Pravidla ligy, bodování a výpočet statistik")
+        st.caption("Kompletní přehled fungování ligy, férového hodnocení a vzorců pro všechny hráče.")
+        
+        c_p1, c_p2 = st.columns(2)
+        
+        with c_p1:
+            st.markdown("### 🎯 1. Férovost formátů: Průměr na hod (Ø/hod)")
+            st.markdown("""
+            * Pokud je na turnaji méně hráčů, hraje se **15 hodů na kolo**.
+            * Pokud je hráčů více, hraje se **10 hodů na kolo**.
+            * **Aby byly výsledky 100% férové a srovnatelné**, veškeré dlouhodobé statistiky, žebříčky a porovnání pracují s **průměrem bodů na 1 hod**:
+            $$\\varnothing/\\text{hod} = \\frac{\\text{Celkový počet nahraných bodů}}{\\text{Celkový počet odházených hodů}}$$
+            Díky tomu má hodnota $\\varnothing 4.50$ stejnou váhu bez ohledu na to, v jakém formátu byla nahrána.
+            """)
+            
+            st.markdown("---")
+            st.markdown("### ⭐ 2. Výpočet Ligových bodů (Turnajový ranking)")
+            st.markdown("""
+            Ligové body neodráží pouze umístění na bedně, ale zohledňují **sílu konkurence** i **celkový bodový výkon** pomocí osvědčeného rankingového vzorce:
+            $$\\text{Body z turnaje} = \\sqrt{N} \\times \\frac{\\text{Nahrané body}}{\\log_2(\\text{Umístění} + 1)}$$
+            * $N$ = celkový počet hráčů na daném turnaji *(větší turnaj = větší zisk bodů)*.
+            * $\\text{Umístění}$ = pořadí hráče na turnaji *(1. místo získá dělitel 1.0, 2. místo 1.58 atd.)*.
+            * **Průměrování na turnaj:** Pro dlouhodobou ligovou tabulku se ligové body dělí počtem odehraných turnajů. Hráči tak nerostou body do nekonečna pouhou účastí, ale rozhoduje **stabilní kvalita výkonů**.
+            """)
+
+            st.markdown("---")
+            st.markdown("### 🏆 3. Rozdělení do ligových kategorií")
+            st.markdown("""
+            * 🏆 **Master Liga:** Hráči s celkovým ligovým průměrem **vyšší než 4.00 bodu / hod**.
+            * 🥈 **Challenge Liga:** Hráči s celkovým ligovým průměrem **do 4.00 bodu / hod**.
+            """)
+
+        with c_p2:
+            st.markdown("### ⚖️ 4. Bonus za stabilitu a vyrovnanost hodů")
+            st.markdown("""
+            Kuželky jsou o přesnosti a stabilitě bez výkyvů.
+            * **Směrodatná odchylka ($\\sigma$):** Měří rozptyl bodů mezi jednotlivými náhozy/koly. Čím menší výkyvy hráč má, tím je jeho výkon spolehlivější.
+            * **Ligový bonus:** Do celkového hodnocení hráče se přičítá stabilizační bonus:
+            $$\\text{Bonus za stabilitu} = \\max\\left(0, \\frac{50 - \\sigma}{20}\\right)$$
+            * **🎯 Nejvyrovnanější hody turnaje:** Titul a kartu v *Historii turnajů* získává hráč s nejnižší odchylkou průměru na hod mezi jednotlivými koly turnaje.
+            """)
+
+            st.markdown("---")
+            st.markdown("### 🚀 5. Skokan turnaje a Forma hráče")
+            st.markdown("""
+            Oceňujeme progres a růst výkonnosti mezi jednotlivými turnaji:
+            * **🚀 Skokan turnaje:** Hráč, který dosáhl největšího zlepšení $\\varnothing/\\text{hod}$ oproti svému předchozímu odehranému turnaji:
+            $$\\Delta \\varnothing = \\varnothing_{\\text{aktuální}} - \\varnothing_{\\text{předchozí}}$$
+            Hráč za tento skok navíc získává přímý bonus do ligových bodů: $\\text{Bonus} = \\max(0, \\Delta \\varnothing \\times 2)$.  
+            *(U prvního turnaje v historii nebo u nováčka se zobrazuje pomlčka, protože chybí srovnávací data).*
+            * **📈 Ukazatel formy (v profilu a tabulce):**
+              * ⬆️ **Rostoucí forma:** Zlepšení průměru na hod o **+5.0 % a více**.
+              * ⬇️ **Klesající forma:** Pokles průměru na hod o **-5.0 % a více**.
+              * ➖ **Stabilní forma:** Výkon v toleranci $\\pm 5.0\\,\\%$.
+            """)
+
+            st.markdown("---")
+            st.markdown("### 👑 6. Top rekordy (10 a 15 hodů)")
+            st.markdown("""
+            V síni slávy *Top rekordy* evidujeme historicky nejvyšší náhozy v jednom kole zvlášť pro formát **10 hodů** a zvlášť pro **15 hodů**.
+            """)
 
     # Patička (Footer)
     st.markdown("---")
