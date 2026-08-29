@@ -610,15 +610,14 @@ def render_player_profile(df_final, df_raw):
             df_hrac2_turnaje.insert(0, "", range(1, len(df_hrac2_turnaje) + 1))
 
     if porovnavany_hrac and not df_hrac2_turnaje.empty:
-        st.markdown("### 📜 Historie turnajů")
-        tab_h1, tab_h2 = st.tabs([f"👤 {vybrany_hrac}", f"👥 {porovnavany_hrac}"])
-        with tab_h1:
-            if not df_hrac_turnaje.empty:
-                display_tournament_table(df_hrac_turnaje)
-            else:
-                st.info(f"Hráč {vybrany_hrac} nemá v tomto formátu žádné odehrané turnaje.")
-        with tab_h2:
-            display_tournament_table(df_hrac2_turnaje)
+        st.markdown(f"### 👤 Historie turnajů – {vybrany_hrac}")
+        if not df_hrac_turnaje.empty:
+            display_tournament_table(df_hrac_turnaje)
+        else:
+            st.info(f"Hráč {vybrany_hrac} nemá v tomto formátu žádné odehrané turnaje.")
+            
+        st.markdown(f"### 👥 Historie turnajů – {porovnavany_hrac}")
+        display_tournament_table(df_hrac2_turnaje)
     else:
         st.markdown("### 📜 Historie turnajů hráče")
         if not df_hrac_turnaje.empty:
