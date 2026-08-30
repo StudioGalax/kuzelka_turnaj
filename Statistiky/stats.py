@@ -242,6 +242,8 @@ def generate_comparison_table(hrac1, hrac2, df_final):
     l1, l2 = h1['Liga'], h2['Liga']
     r1, r2 = int(h1['Liga_Rank']), int(h2['Liga_Rank'])
     b1, b2 = round(h1['Liga Body'] / 10, 1), round(h2['Liga Body'] / 10, 1)
+    b_stab1, b_stab2 = round(h1['Bonus_Stabilita'], 2), round(h2['Bonus_Stabilita'], 2)
+    odch1, odch2 = round(h1['Odchylka'], 2), round(h2['Odchylka'], 2)
     p1, p2 = round(h1['Průměr na hod'], 2), round(h2['Průměr na hod'], 2)
     rec1, rec2 = int(h1['Max_Kolo']), int(h2['Max_Kolo'])
     t1, t2 = int(h1['Pocet_Turnaju']), int(h2['Pocet_Turnaju'])
@@ -312,6 +314,12 @@ def generate_comparison_table(hrac1, hrac2, df_final):
                 <td class="{"winner-cell" if b1 > b2 else ""}">{b1} b.</td>
                 <td class="{"winner-cell" if b2 > b1 else ""}">{b2} b.</td>
                 <td>{format_diff(b1 - b2)} b.</td>
+            </tr>
+            <tr>
+                <td class="metric-name">⚖️ Bonus za stabilitu</td>
+                <td class="{"winner-cell" if b_stab1 > b_stab2 else ""}">{b_stab1:.2f} b. <span style="font-size: 12px; color: #6c757d;">(σ = {odch1:.1f})</span></td>
+                <td class="{"winner-cell" if b_stab2 > b_stab1 else ""}">{b_stab2:.2f} b. <span style="font-size: 12px; color: #6c757d;">(σ = {odch2:.1f})</span></td>
+                <td>{format_diff(b_stab1 - b_stab2)} b.</td>
             </tr>
             <tr>
                 <td class="metric-name">🎯 Celkový Ø/hod</td>
@@ -693,7 +701,8 @@ if all_stats:
                 forma = '<span style="color:#28a745;font-weight:bold;font-size:16px;">▲</span>' if last_avg > 0 else '<span style="color:#6c757d;font-weight:bold;font-size:15px;">▬</span>'
         
         # Průměr na turnaj, aby čísla nerostla do nekonečna
-        prumerne_liga_body = (group['Ligove_Body'].sum() + max(0, (50 - odchylka) / 20) + skokan) / len(group)
+        bonus_stabilita = max(0, (50 - odchylka) / 20)
+        prumerne_liga_body = (group['Ligove_Body'].sum() + bonus_stabilita + skokan) / len(group)
         prumer_na_hod = group['Body'].sum() / celkem_hodů if celkem_hodů > 0 else 0
         max_kolo = max((max(row['Surove_Body']) for _, row in group.iterrows() if len(row['Surove_Body']) > 0), default=0)
         
@@ -705,7 +714,9 @@ if all_stats:
             "Pocet_Turnaju": len(group),
             "Celkem_Hodu": celkem_hodů,
             "Max_Kolo": max_kolo,
-            "Celkem_Bodu": group['Body'].sum()
+            "Celkem_Bodu": group['Body'].sum(),
+            "Odchylka": odchylka,
+            "Bonus_Stabilita": bonus_stabilita
         })
 
     df_final = df_raw.groupby('Jméno').apply(process_player, include_groups=False).reset_index()
