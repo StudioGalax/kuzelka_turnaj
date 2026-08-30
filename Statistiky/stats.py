@@ -467,6 +467,10 @@ def render_player_profile(df_final, df_raw):
             x="Label", 
             y="Průměr na hod", 
             color="Hráč",
+            color_discrete_map={
+                vybrany_hrac: "#1f77b4",
+                porovnavany_hrac: "#ff4b4b"
+            },
             markers=True,
             hover_data={"Datum": True, "Průměr na hod": True, "Body": True, "Umístění": True, "Label": False, "Hráč": True},
             title=f"Srovnání vývoje formy"
