@@ -736,6 +736,7 @@ if all_stats:
             st.markdown("---")
             st.markdown("**📲 Sdílej statistiky:**")
             st.image(qr_path, width=180)
+            st.markdown("🔗 [**bit.ly/3SGN1ay**](https://bit.ly/3SGN1ay)")
 
     st.title("📊 Statistiky kuželkářského turnaje")
     
