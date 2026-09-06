@@ -91,6 +91,24 @@ def load_data():
     return {"teams": {}, "tournament_started": False}
 
 def save_data(data):
+    # Automaticky načteme hraci.csv a uložíme mapování Jméno -> ID do turnaje
+    try:
+        df_h = load_hraci_csv()
+        if not df_h.empty:
+            mapping = {}
+            for _, r in df_h.iterrows():
+                mapping[str(r["Jméno"]).strip()] = int(r["ID"])
+            
+            if "player_ids" not in data:
+                data["player_ids"] = {}
+            for team in data.get("teams", {}).values():
+                for p in team.keys():
+                    p_clean = p.strip()
+                    if p_clean in mapping:
+                        data["player_ids"][p_clean] = mapping[p_clean]
+    except Exception:
+        pass
+
     cesta = get_file_path() # Generuje cestu k souboru pro dnešek
     with open(cesta, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)

@@ -59,6 +59,25 @@ else:
     DATA_FOLDER = 'Historie_turnaju_json'
 
 # --- FUNKCE ---
+def load_hraci_mapping():
+    csv_path = os.path.join(os.path.dirname(BASE_DIR), "hraci.csv")
+    if not os.path.exists(csv_path):
+        csv_path = os.path.join(BASE_DIR, "hraci.csv")
+    
+    name_to_id = {}
+    id_to_name = {}
+    if os.path.exists(csv_path):
+        try:
+            df = pd.read_csv(csv_path)
+            for _, r in df.iterrows():
+                p_id = int(r["ID"])
+                p_name = str(r["Jméno"]).strip()
+                name_to_id[p_name.lower()] = p_id
+                id_to_name[p_id] = p_name
+        except Exception:
+            pass
+    return name_to_id, id_to_name
+
 def display_table(df, sort_by, columns, max_rows=10):
     if df.empty: return
     
@@ -638,6 +657,8 @@ def render_player_profile(df_final, df_raw):
             st.info("Žádná historie.")
 
 # --- HLAVNÍ LOGIKA ---
+name_to_id, id_to_name = load_hraci_mapping()
+
 all_stats = []
 if os.path.exists(DATA_FOLDER):
     for file_name in [f for f in os.listdir(DATA_FOLDER) if f.endswith('.json')]:
@@ -656,9 +677,28 @@ if os.path.exists(DATA_FOLDER):
                 datum_format = file_name.replace('.json', '')
                 datum_sort = file_name
                 
+            player_ids = data.get("player_ids", {})
             for idx, hrac in enumerate(turnaj_hraci):
+                p_name_orig = hrac["Jméno"]
+                p_id = player_ids.get(p_name_orig)
+                if p_id is None:
+                    p_id = name_to_id.get(p_name_orig.lower())
+                if p_id is None:
+                    # Fallback na prefix/částečnou shodu (např. "Karel" -> "Karel W.")
+                    for csv_name, csv_id in name_to_id.items():
+                        if csv_name.startswith(p_name_orig.lower()) or p_name_orig.lower().startswith(csv_name):
+                            p_id = csv_id
+                            break
+                if p_id is None:
+                    p_id = hash(p_name_orig) % 100000
+                
+                p_id = int(p_id)
+                p_name_current = id_to_name.get(p_id, p_name_orig)
+
                 all_stats.append({
                     **hrac, 
+                    "Jméno": p_name_current,
+                    "ID_Hrace": p_id,
                     "Ligove_Body": vypocitat_pokerove_body(hrac['Body'], idx + 1, len(turnaj_hraci)), 
                     "Turnaj": file_name, 
                     "Datum_Sort": datum_sort, 
