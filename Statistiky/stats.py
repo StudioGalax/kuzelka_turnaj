@@ -784,7 +784,7 @@ if all_stats:
             st.image(logo_path, use_container_width=True)
         st.markdown("### 🎳 Kuželky Liga")
         st.markdown("**Vibe Coder:** Jan Bugdol  \n**Studio:** Studio Galax  \n🤖 **Built with AI:** Claude & Gemini (Cline)")
-        st.markdown("📧 [studiogalax.cz@gmail.com](mailto:studiogalax.cz@gmail.com)")
+        st.markdown("📧 [studiogalax.cz@gmail.com](mailto:studiogalax.cz@gmail.com?subject=Statistiky%20turnaje)")
         st.caption("Případné připomínky, nápady na funkce a vylepšení posílejte na e-mail.")
         
         if os.path.exists(qr_path):
@@ -1044,7 +1044,7 @@ if all_stats:
     with col_f2:
         st.markdown("""
         🚀 **Vibe Coder:** Jan Bugdol &nbsp;|&nbsp; 🏢 **Studio Galax** &nbsp;|&nbsp; 🤖 **Built with AI:** Claude & Gemini (Cline)  
-        📧 **Připomínky, nápady & vylepšení:** [studiogalax.cz@gmail.com](mailto:studiogalax.cz@gmail.com)
+        📧 **Připomínky, nápady & vylepšení:** [studiogalax.cz@gmail.com](mailto:studiogalax.cz@gmail.com?subject=Statistiky%20turnaje)
         """)
 
 else:
