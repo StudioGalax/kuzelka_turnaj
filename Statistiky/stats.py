@@ -216,7 +216,7 @@ def display_tournament_table(df, max_rows=10):
     calc_height = 42 + visible_rows * 37 + 10
     iframe_height = min(calc_height, container_max_height + 15)
 
-    html_table = df.to_html(index=False, classes='table-zebra-turnaj', border=0)
+    html_table = df.to_html(index=False, classes='table-zebra-turnaj', border=0, escape=False)
     
     html_content = f"""
     <style>
@@ -229,6 +229,37 @@ def display_tournament_table(df, max_rows=10):
         .table-zebra-turnaj th:nth-child(3), .table-zebra-turnaj td:nth-child(3) {{ text-align: left; }}
         .table-zebra-turnaj th:first-child, .table-zebra-turnaj td:first-child {{ width: 35px; text-align: center; font-weight: bold; }}
         .table-zebra-turnaj th {{ border-bottom: 2px solid #cbd5e0; background-color: #edf2f7; color: #2d3748; font-weight: 600; position: sticky; top: 0; z-index: 1; }}
+        .scroll-container {{ max-height: {container_max_height}px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; }}
+    </style>
+    <div class="scroll-container">{html_table}</div>
+    """
+    components.html(html_content, height=iframe_height)
+
+def display_custom_styled_table(df, max_rows=10, left_cols=(2,)):
+    if df.empty: return
+    
+    row_count = len(df)
+    visible_rows = min(row_count, max_rows)
+    container_max_height = 42 + max_rows * 37
+    calc_height = 42 + visible_rows * 37 + 10
+    iframe_height = min(calc_height, container_max_height + 15)
+
+    html_table = df.to_html(index=False, classes='table-zebra-styled', border=0, escape=False)
+    
+    left_align_css = ""
+    for c_idx in left_cols:
+        left_align_css += f".table-zebra-styled th:nth-child({c_idx}), .table-zebra-styled td:nth-child({c_idx}) {{ text-align: left; }}\n"
+
+    html_content = f"""
+    <style>
+        body {{ margin: 0; padding: 0; background-color: #ffffff; color: #1a202c; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }}
+        .table-zebra-styled {{ width: 100%; border-collapse: collapse; table-layout: auto; font-size: 14px; color: #1a202c; }}
+        .table-zebra-styled tr:nth-of-type(even) {{ background-color: #f7fafc; }}
+        .table-zebra-styled tr:nth-of-type(odd) {{ background-color: #ffffff; }}
+        .table-zebra-styled th, .table-zebra-styled td {{ padding: 8px 10px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; text-align: center; color: #1a202c; }}
+        {left_align_css}
+        .table-zebra-styled th:first-child, .table-zebra-styled td:first-child {{ width: 35px; text-align: center; font-weight: bold; }}
+        .table-zebra-styled th {{ border-bottom: 2px solid #cbd5e0; background-color: #edf2f7; color: #2d3748; font-weight: 600; position: sticky; top: 0; z-index: 1; }}
         .scroll-container {{ max-height: {container_max_height}px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; }}
     </style>
     <div class="scroll-container">{html_table}</div>
@@ -660,6 +691,199 @@ def render_player_profile(df_final, df_raw):
         else:
             st.info("Žádná historie.")
 
+def render_vyrovnanost_a_skokani(df_raw, df_final):
+    st.markdown("## ⚖️ Vyrovnanost hodů & 🚀 Skokani ligy")
+    st.caption("Dlouhodobé vyhodnocení stability výkonů bez výkyvů a největších zlepšení napříč ligovými turnaji.")
+    
+    # --- VÝPOČET VYROVNANOSTI HRÁČŮ ---
+    vyrovnanost_rows = []
+    for hrac_jmeno, group in df_raw.groupby('Jméno'):
+        vsechna_kola = [h for sublist in group['Surove_Body'] for h in sublist]
+        pocet_kol = len(vsechna_kola)
+        pocet_t = len(group)
+        celkem_h = sum(len(row['Surove_Body']) * row['limit_hodu'] for _, row in group.iterrows())
+        prumer_hod = group['Body'].sum() / celkem_h if celkem_h > 0 else 0
+        odchylka = np.std(vsechna_kola) if pocet_kol > 0 else 0
+        min_kolo = min(vsechna_kola) if vsechna_kola else 0
+        max_kolo = max(vsechna_kola) if vsechna_kola else 0
+        bonus_st = max(0, (50 - odchylka) / 20)
+        liga_kat = "🏆 Master" if prumer_hod > 4.0 else "🥈 Challenge"
+        
+        vyrovnanost_rows.append({
+            "Hráč": hrac_jmeno,
+            "Liga": liga_kat,
+            "Průměr na hod": round(prumer_hod, 2),
+            "Odchylka": round(odchylka, 2),
+            "Odchylka_str": f"±{round(odchylka, 2)} b.",
+            "Rozpětí kol": f"{min_kolo} – {max_kolo} b.",
+            "Rozdíl min/max": max_kolo - min_kolo,
+            "Bonus stabilita": round(bonus_st, 2),
+            "Bonus_str": f"+{round(bonus_st, 2)} b.",
+            "Počet turnajů": pocet_t,
+            "Počet kol": pocet_kol,
+            "Aktivita": f"{pocet_t} turn. ({pocet_kol} kol)"
+        })
+        
+    df_vyrovnanost = pd.DataFrame(vyrovnanost_rows)
+    
+    # --- VÝPOČET SKOKANŮ LIGY ---
+    skoky_turnaje = []
+    celkovy_progres_rows = []
+    
+    for hrac_jmeno, group in df_raw.groupby('Jméno'):
+        s = group.sort_values('Datum_Sort').reset_index(drop=True)
+        if len(s) >= 2:
+            for i in range(len(s) - 1):
+                t_curr = s.iloc[i]
+                t_next = s.iloc[i+1]
+                h_c = len(t_curr['Surove_Body']) * t_curr['limit_hodu']
+                h_n = len(t_next['Surove_Body']) * t_next['limit_hodu']
+                avg_c = t_curr['Body'] / h_c if h_c > 0 else 0
+                avg_n = t_next['Body'] / h_n if h_n > 0 else 0
+                diff = avg_n - avg_c
+                pct = (diff / avg_c * 100) if avg_c > 0 else 0
+                if diff > 0:
+                    skoky_turnaje.append({
+                        "Hráč": hrac_jmeno,
+                        "Skok": diff,
+                        "Skok_Pct": pct,
+                        "Skok_str": f'<span style="color:#28a745;font-weight:bold;">+{round(diff, 2)} Ø/hod</span>',
+                        "Narust_str": f'<span style="color:#28a745;font-weight:bold;">+{round(pct, 1)} %</span>',
+                        "Vyvoj_str": f"{round(avg_c, 2)} ➔ <b>{round(avg_n, 2)}</b>",
+                        "Z turnaje": t_curr['Datum_Format'],
+                        "Do turnaje": t_next['Datum_Format'],
+                        "Bonus": round(max(0, diff * 2), 2),
+                        "Bonus_str": f"+{round(max(0, diff * 2), 2)} b."
+                    })
+            t_first = s.iloc[0]
+            t_last = s.iloc[-1]
+            h_f = len(t_first['Surove_Body']) * t_first['limit_hodu']
+            h_l = len(t_last['Surove_Body']) * t_last['limit_hodu']
+            avg_f = t_first['Body'] / h_f if h_f > 0 else 0
+            avg_l = t_last['Body'] / h_l if h_l > 0 else 0
+            diff_tot = avg_l - avg_f
+            pct_tot = (diff_tot / avg_f * 100) if avg_f > 0 else 0
+            trend_badge = '<span style="color:#28a745;font-weight:bold;">▲ Roste</span>' if diff_tot > 0.1 else ('<span style="color:#dc3545;font-weight:bold;">▼ Klesá</span>' if diff_tot < -0.1 else '<span style="color:#6c757d;font-weight:bold;">▬ Stabilní</span>')
+            posun_color = "#28a745" if diff_tot > 0 else ("#dc3545" if diff_tot < 0 else "#6c757d")
+            posun_sign = "+" if diff_tot > 0 else ""
+            celkovy_progres_rows.append({
+                "Hráč": hrac_jmeno,
+                "První Ø": round(avg_f, 2),
+                "Aktuální Ø": round(avg_l, 2),
+                "Posun": diff_tot,
+                "Posun_str": f'<span style="color:{posun_color};font-weight:bold;">{posun_sign}{round(diff_tot, 2)} Ø/hod</span>',
+                "Posun_Pct": pct_tot,
+                "Narust_str": f'<span style="color:{posun_color};font-weight:bold;">{posun_sign}{round(pct_tot, 1)} %</span>',
+                "Trend": trend_badge,
+                "Turnaje": len(s)
+            })
+
+    df_skoky = pd.DataFrame(skoky_turnaje)
+    df_progres = pd.DataFrame(celkovy_progres_rows)
+    # Přehledové metriky (Karty)
+    col_st1, col_st2, col_st3, col_st4 = st.columns(4)
+    if not df_vyrovnanost.empty:
+        nej_stab_hrac = df_vyrovnanost.sort_values(by=['Odchylka', 'Průměr na hod'], ascending=[True, False]).iloc[0]
+        with col_st1:
+            st.metric("🎯 Král vyrovnanosti", nej_stab_hrac["Hráč"], f"σ = ±{nej_stab_hrac['Odchylka']} b. ({nej_stab_hrac['Liga']})")
+        avg_odchylka = df_vyrovnanost['Odchylka'].mean()
+        with col_st2:
+            st.metric("⚖️ Průměrná stabilita ligy", f"±{round(avg_odchylka, 2)} b.", f"{len(df_vyrovnanost)} hráčů")
+    if not df_skoky.empty:
+        nej_skok_zaznam = df_skoky.sort_values(by='Skok', ascending=False).iloc[0]
+        with col_st3:
+            st.metric("🚀 Rekordní skokan ligy", nej_skok_zaznam["Hráč"], f"+{round(nej_skok_zaznam['Skok'], 2)} Ø/hod (+{round(nej_skok_zaznam['Skok_Pct'], 1)} %)")
+    else:
+        with col_st3:
+            st.metric("🚀 Rekordní skokan ligy", "—", "Zatím 1 turnaj")
+    if not df_progres.empty:
+        nej_progres_zaznam = df_progres.sort_values(by='Posun', ascending=False).iloc[0]
+        with col_st4:
+            st.metric("📈 Největší ligový růst", nej_progres_zaznam["Hráč"], f"+{round(nej_progres_zaznam['Posun'], 2)} Ø/hod (+{round(nej_progres_zaznam['Posun_Pct'], 1)} %)")
+    else:
+        with col_st4:
+            st.metric("📈 Největší ligový růst", "—", "Zatím 1 turnaj")
+
+    st.markdown("---")
+    sub_tab1, sub_tab2 = st.tabs(["⚖️ Tabulka vyrovnanosti ligy", "🚀 Skokani ligy & Progres"])
+    
+    with sub_tab1:
+        st.info("💡 **Směrodatná odchylka (σ):** Měří stabilitu náhozů mezi jednotlivými koly. Čím je hodnota nižší, tím menší výkyvy hráč má a tím spolehlivější výkon podává bez výkyvů. Za vysokou vyrovnanost získává hráč bonus za stabilitu do ligové tabulky.")
+        
+        c_f1, c_f2 = st.columns([1, 1])
+        with c_f1:
+            filtr_liga = st.selectbox(
+                "🔍 Filtrovat hráče:",
+                options=["Všichni hráči", "🏆 Pouze Master Liga", "🥈 Pouze Challenge Liga", "👥 Pouze hráči s ≥ 2 turnaji"],
+                key="filtr_vyrovnanost"
+            )
+        with c_f2:
+            razeni_vyr = st.selectbox(
+                "↕️ Řadit podle:",
+                options=["Nejvyrovnanější (nejmenší odchylka σ)", "Dle průměru na hod (Ø/hod)", "Dle bonusu za stabilitu", "Dle nejmenšího rozpětí kol"],
+                key="razeni_vyrovnanost"
+            )
+            
+        df_vyr_filtered = df_vyrovnanost.copy()
+        if filtr_liga == "🏆 Pouze Master Liga":
+            df_vyr_filtered = df_vyr_filtered[df_vyr_filtered["Liga"] == "🏆 Master"]
+        elif filtr_liga == "🥈 Pouze Challenge Liga":
+            df_vyr_filtered = df_vyr_filtered[df_vyr_filtered["Liga"] == "🥈 Challenge"]
+        elif filtr_liga == "👥 Pouze hráči s ≥ 2 turnaji":
+            df_vyr_filtered = df_vyr_filtered[df_vyr_filtered["Počet turnajů"] >= 2]
+            
+        if razeni_vyr == "Nejvyrovnanější (nejmenší odchylka σ)":
+            df_vyr_filtered = df_vyr_filtered.sort_values(by=["Odchylka", "Průměr na hod"], ascending=[True, False])
+        elif razeni_vyr == "Dle průměru na hod (Ø/hod)":
+            df_vyr_filtered = df_vyr_filtered.sort_values(by=["Průměr na hod", "Odchylka"], ascending=[False, True])
+        elif razeni_vyr == "Dle bonusu za stabilitu":
+            df_vyr_filtered = df_vyr_filtered.sort_values(by=["Bonus stabilita", "Odchylka"], ascending=[False, True])
+        elif razeni_vyr == "Dle nejmenšího rozpětí kol":
+            df_vyr_filtered = df_vyr_filtered.sort_values(by=["Rozdíl min/max", "Odchylka"], ascending=[True, True])
+            
+        df_vyr_filtered = df_vyr_filtered.reset_index(drop=True)
+        df_vyr_filtered.insert(0, "", range(1, len(df_vyr_filtered) + 1))
+        
+        cols_show_vyr = ["", "Hráč", "Liga", "Průměr na hod", "Odchylka_str", "Rozpětí kol", "Bonus_str", "Aktivita"]
+        df_vyr_display = df_vyr_filtered[cols_show_vyr].rename(columns={
+            "Průměr na hod": "Ø/hod",
+            "Odchylka_str": "Odchylka (σ)",
+            "Bonus_str": "Bonus stabilita",
+            "Aktivita": "Účast"
+        })
+        display_custom_styled_table(df_vyr_display, max_rows=12, left_cols=(2, 3))
+        
+    with sub_tab2:
+        st.info("💡 **Skokan turnaje a ligy:** Oceňujeme růst formy a zlepšování hráčů. Sledujeme jak rekordní meziturnajové skoky, tak celkový dlouhodobý posun hráče od jeho prvního turnaje v lize.")
+        
+        col_sk1, col_sk2 = st.columns(2)
+        with col_sk1:
+            st.markdown("### 🔥 Největší meziturnajové skoky")
+            st.caption("Historicky největší zlepšení průměru na hod mezi dvěma po sobě jdoucími turnaji.")
+            if not df_skoky.empty:
+                df_skoky_sorted = df_skoky.sort_values(by="Skok", ascending=False).reset_index(drop=True)
+                df_skoky_sorted.insert(0, "", range(1, len(df_skoky_sorted) + 1))
+                cols_skoky = ["", "Hráč", "Skok_str", "Narust_str", "Vyvoj_str", "Z turnaje", "Do turnaje", "Bonus_str"]
+                df_skoky_display = df_skoky_sorted[cols_skoky].rename(columns={
+                    "Skok_str": "Zlepšení", "Narust_str": "Nárůst", "Vyvoj_str": "Vývoj Ø/hod", "Bonus_str": "Bonus"
+                })
+                display_custom_styled_table(df_skoky_display, max_rows=10, left_cols=(2, 6, 7))
+            else:
+                st.info("Zatím není dostatek odehraných turnajů pro zobrazení meziturnajových skoků.")
+        with col_sk2:
+            st.markdown("### 📈 Celkový ligový progres")
+            st.caption("Celkový posun hráčů od jejich 1. odehraného turnaje po současnost.")
+            if not df_progres.empty:
+                df_progres_sorted = df_progres.sort_values(by="Posun", ascending=False).reset_index(drop=True)
+                df_progres_sorted.insert(0, "", range(1, len(df_progres_sorted) + 1))
+                cols_progres = ["", "Hráč", "První Ø", "Aktuální Ø", "Posun_str", "Narust_str", "Trend", "Turnaje"]
+                df_progres_display = df_progres_sorted[cols_progres].rename(columns={
+                    "První Ø": "1. turnaj Ø", "Aktuální Ø": "Aktuální Ø", "Posun_str": "Celkový posun", "Narust_str": "Změna %", "Turnaje": "Turnajů"
+                })
+                display_custom_styled_table(df_progres_display, max_rows=10, left_cols=(2, 7))
+            else:
+                st.info("Zatím není dostatek odehraných turnajů pro zobrazení celkového progresu.")
+
 # --- HLAVNÍ LOGIKA ---
 name_to_id, id_to_name = load_hraci_mapping()
 
@@ -799,7 +1023,7 @@ if all_stats:
 
     st.title("📊 Statistiky kuželkářského turnaje")
     
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📊 Ligová tabulka", "🎯 Průměr na hod", "👤 Profil hráče", "🏆 Top rekordy 10/15", "📜 Historie turnajů", "📖 Pravidla a bodování"])
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["📊 Ligová tabulka", "🎯 Průměr na hod", "👤 Profil hráče", "🏆 Top rekordy 10/15", "📜 Historie turnajů", "⚖️ Vyrovnanost & Skokani", "📖 Pravidla a bodování"])
 
     with tab1:
         PRUH_LIGY = 4.0
@@ -983,6 +1207,9 @@ if all_stats:
                     display_tournament_table(df_turnaj_tymy)
 
     with tab6:
+        render_vyrovnanost_a_skokani(df_raw, df_final)
+
+    with tab7:
         st.markdown("## 📖 Pravidla ligy, bodování a výpočet statistik")
         st.caption("Kompletní přehled fungování ligy, férového hodnocení a vzorců pro všechny hráče.")
         
