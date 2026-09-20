@@ -605,6 +605,7 @@ def render_player_profile(df_final, df_raw):
         for i in range(max_kol_hrac):
             row_t[f"{i+1}."] = rounds[i] if i < len(rounds) else "-"
         row_t["Celkem"] = r['Body']
+        row_t["Liga Body"] = round(r['Ligove_Body'] / 10, 1)
         row_t["Ø/hod"] = round(prum_t, 2)
         row_t["Max"] = max(rounds) if rounds else 0
         hrac_turnaje_rows.append(row_t)
@@ -632,6 +633,7 @@ def render_player_profile(df_final, df_raw):
             for i in range(max_kol_hrac2):
                 row_t[f"{i+1}."] = rounds[i] if i < len(rounds) else "-"
             row_t["Celkem"] = r['Body']
+            row_t["Liga Body"] = round(r['Ligove_Body'] / 10, 1)
             row_t["Ø/hod"] = round(prum_t, 2)
             row_t["Max"] = max(rounds) if rounds else 0
             hrac2_turnaje_rows.append(row_t)
@@ -862,6 +864,7 @@ if all_stats:
                     for i in range(max_kol):
                         row[f"{i+1}."] = rounds[i] if i < len(rounds) else "-"
                     row["Celkem"] = celkem
+                    row["Liga Body"] = 0.0
                     row["Ø/hod"] = round(prumer_hod, 2)
                     row["Max"] = max_kolo
                     hraci_rows.append(row)
@@ -869,6 +872,11 @@ if all_stats:
             df_turnaj_hraci = pd.DataFrame(hraci_rows)
             if not df_turnaj_hraci.empty:
                 df_turnaj_hraci = df_turnaj_hraci.sort_values(by=["Celkem", "Max"], ascending=[False, False]).reset_index(drop=True)
+                pocet_h = len(df_turnaj_hraci)
+                df_turnaj_hraci["Liga Body"] = [
+                    round(vypocitat_pokerove_body(r["Celkem"], idx + 1, pocet_h) / 10, 1)
+                    for idx, r in df_turnaj_hraci.iterrows()
+                ]
                 df_turnaj_hraci.insert(0, "", range(1, len(df_turnaj_hraci) + 1))
                 
             # Sestavení dat týmů
