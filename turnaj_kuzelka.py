@@ -522,9 +522,9 @@ if is_admin:
                         skokani.append({"Hráč": pn, "Tým": r["Tým"], "diff": diff, "pct": pct})
             
             if skokani:
-                nej_sk = max(skokani, key=lambda x: x["diff"])
+                nej_sk = max(skokani, key=lambda x: (x["pct"], x["diff"]))
                 skokan_j = f"{nej_sk['Hráč']} ({nej_sk['Tým']})"
-                skokan_d = f"+{nej_sk['diff']:.2f} Ø/hod (+{nej_sk['pct']:.1f} %)"
+                skokan_d = f"+{nej_sk['pct']:.1f} % (+{nej_sk['diff']:.2f} Ø/hod)"
             else:
                 skokan_j, skokan_d = "—", "1. turnaj / beze skoku"
 

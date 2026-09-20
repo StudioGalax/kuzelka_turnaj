@@ -752,8 +752,8 @@ def render_vyrovnanost_a_skokani(df_raw, df_final):
                         "Vyvoj_str": f"{round(avg_c, 2)} ➔ <b>{round(avg_n, 2)}</b>",
                         "Z turnaje": t_curr['Datum_Format'],
                         "Do turnaje": t_next['Datum_Format'],
-                        "Bonus": round(max(0, diff * 2), 2),
-                        "Bonus_str": f"+{round(max(0, diff * 2), 2)} b."
+                        "Bonus": round(max(0, pct / 10), 2),
+                        "Bonus_str": f"+{round(max(0, pct / 10), 2)} b."
                     })
             t_first = s.iloc[0]
             t_last = s.iloc[-1]
@@ -790,16 +790,16 @@ def render_vyrovnanost_a_skokani(df_raw, df_final):
         with col_st2:
             st.metric("⚖️ Průměrná stabilita ligy", f"±{round(avg_odchylka, 2)} b.", f"{len(df_vyrovnanost)} hráčů")
     if not df_skoky.empty:
-        nej_skok_zaznam = df_skoky.sort_values(by='Skok', ascending=False).iloc[0]
+        nej_skok_zaznam = df_skoky.sort_values(by=['Skok_Pct', 'Skok'], ascending=[False, False]).iloc[0]
         with col_st3:
-            st.metric("🚀 Rekordní skokan ligy", nej_skok_zaznam["Hráč"], f"+{round(nej_skok_zaznam['Skok'], 2)} Ø/hod (+{round(nej_skok_zaznam['Skok_Pct'], 1)} %)")
+            st.metric("🚀 Rekordní skokan ligy", nej_skok_zaznam["Hráč"], f"+{round(nej_skok_zaznam['Skok_Pct'], 1)} % (+{round(nej_skok_zaznam['Skok'], 2)} Ø/hod)")
     else:
         with col_st3:
             st.metric("🚀 Rekordní skokan ligy", "—", "Zatím 1 turnaj")
     if not df_progres.empty:
-        nej_progres_zaznam = df_progres.sort_values(by='Posun', ascending=False).iloc[0]
+        nej_progres_zaznam = df_progres.sort_values(by=['Posun_Pct', 'Posun'], ascending=[False, False]).iloc[0]
         with col_st4:
-            st.metric("📈 Největší ligový růst", nej_progres_zaznam["Hráč"], f"+{round(nej_progres_zaznam['Posun'], 2)} Ø/hod (+{round(nej_progres_zaznam['Posun_Pct'], 1)} %)")
+            st.metric("📈 Největší ligový růst", nej_progres_zaznam["Hráč"], f"+{round(nej_progres_zaznam['Posun_Pct'], 1)} % (+{round(nej_progres_zaznam['Posun'], 2)} Ø/hod)")
     else:
         with col_st4:
             st.metric("📈 Největší ligový růst", "—", "Zatím 1 turnaj")
@@ -854,31 +854,31 @@ def render_vyrovnanost_a_skokani(df_raw, df_final):
         display_custom_styled_table(df_vyr_display, max_rows=12, left_cols=(2, 3))
         
     with sub_tab2:
-        st.info("💡 **Skokan turnaje a ligy:** Oceňujeme růst formy a zlepšování hráčů. Sledujeme jak rekordní meziturnajové skoky, tak celkový dlouhodobý posun hráče od jeho prvního turnaje v lize.")
+        st.info("💡 **Skokan turnaje a ligy:** Oceňujeme růst formy a procentuální zlepšování hráčů. Hodnocení podle procent dává férovou šanci i méně zkušeným hráčům, kteří na sobě zapracovali a dosáhli největšího skoku.")
         
         col_sk1, col_sk2 = st.columns(2)
         with col_sk1:
             st.markdown("### 🔥 Největší meziturnajové skoky")
-            st.caption("Historicky největší zlepšení průměru na hod mezi dvěma po sobě jdoucími turnaji.")
+            st.caption("Historicky největší procentuální zlepšení průměru na hod mezi dvěma turnaji.")
             if not df_skoky.empty:
-                df_skoky_sorted = df_skoky.sort_values(by="Skok", ascending=False).reset_index(drop=True)
+                df_skoky_sorted = df_skoky.sort_values(by=["Skok_Pct", "Skok"], ascending=[False, False]).reset_index(drop=True)
                 df_skoky_sorted.insert(0, "", range(1, len(df_skoky_sorted) + 1))
-                cols_skoky = ["", "Hráč", "Skok_str", "Narust_str", "Vyvoj_str", "Z turnaje", "Do turnaje", "Bonus_str"]
+                cols_skoky = ["", "Hráč", "Narust_str", "Skok_str", "Vyvoj_str", "Z turnaje", "Do turnaje", "Bonus_str"]
                 df_skoky_display = df_skoky_sorted[cols_skoky].rename(columns={
-                    "Skok_str": "Zlepšení", "Narust_str": "Nárůst", "Vyvoj_str": "Vývoj Ø/hod", "Bonus_str": "Bonus"
+                    "Narust_str": "Zlepšení %", "Skok_str": "Posun (Ø/hod)", "Vyvoj_str": "Vývoj Ø/hod", "Bonus_str": "Bonus"
                 })
                 display_custom_styled_table(df_skoky_display, max_rows=10, left_cols=(2, 6, 7))
             else:
                 st.info("Zatím není dostatek odehraných turnajů pro zobrazení meziturnajových skoků.")
         with col_sk2:
             st.markdown("### 📈 Celkový ligový progres")
-            st.caption("Celkový posun hráčů od jejich 1. odehraného turnaje po současnost.")
+            st.caption("Celkový procentuální růst hráčů od jejich 1. odehraného turnaje po současnost.")
             if not df_progres.empty:
-                df_progres_sorted = df_progres.sort_values(by="Posun", ascending=False).reset_index(drop=True)
+                df_progres_sorted = df_progres.sort_values(by=["Posun_Pct", "Posun"], ascending=[False, False]).reset_index(drop=True)
                 df_progres_sorted.insert(0, "", range(1, len(df_progres_sorted) + 1))
-                cols_progres = ["", "Hráč", "První Ø", "Aktuální Ø", "Posun_str", "Narust_str", "Trend", "Turnaje"]
+                cols_progres = ["", "Hráč", "Narust_str", "Posun_str", "První Ø", "Aktuální Ø", "Trend", "Turnaje"]
                 df_progres_display = df_progres_sorted[cols_progres].rename(columns={
-                    "První Ø": "1. turnaj Ø", "Aktuální Ø": "Aktuální Ø", "Posun_str": "Celkový posun", "Narust_str": "Změna %", "Turnaje": "Turnajů"
+                    "Narust_str": "Změna %", "Posun_str": "Celkový posun", "První Ø": "1. turnaj Ø", "Aktuální Ø": "Aktuální Ø", "Turnaje": "Turnajů"
                 })
                 display_custom_styled_table(df_progres_display, max_rows=10, left_cols=(2, 7))
             else:
@@ -958,11 +958,10 @@ if all_stats:
             last_avg = last_row['Body'] / last_hody if last_hody > 0 else 0
             prev_avg = prev_row['Body'] / prev_hody if prev_hody > 0 else 0
             
-            skokan = max(0, (last_avg - prev_avg) * 2)
-            
             if prev_avg > 0:
                 rozdil_pct = ((last_avg - prev_avg) / prev_avg) * 100
                 forma_pct = rozdil_pct
+                skokan = max(0, rozdil_pct / 10)
                 if rozdil_pct >= 5.0:
                     forma = '<span style="color:#28a745;font-weight:bold;font-size:16px;">▲</span>'
                 elif rozdil_pct <= -5.0:
@@ -971,6 +970,7 @@ if all_stats:
                     forma = '<span style="color:#6c757d;font-weight:bold;font-size:15px;">▬</span>'
             else:
                 forma = '<span style="color:#28a745;font-weight:bold;font-size:16px;">▲</span>' if last_avg > 0 else '<span style="color:#6c757d;font-weight:bold;font-size:15px;">▬</span>'
+                skokan = 0
         
         # Průměr na turnaj, aby čísla nerostla do nekonečna
         bonus_stabilita = max(0, (50 - odchylka) / 20)
@@ -1170,9 +1170,9 @@ if all_stats:
                                     })
                 
                 if skokani:
-                    nej_skokan = max(skokani, key=lambda x: x["diff_avg"])
+                    nej_skokan = max(skokani, key=lambda x: (x["pct_diff"], x["diff_avg"]))
                     skokan_jmeno = nej_skokan["Hráč"]
-                    skokan_popis = f"+{round(nej_skokan['diff_avg'], 2)} Ø/hod (+{round(nej_skokan['pct_diff'], 1)}%)"
+                    skokan_popis = f"+{round(nej_skokan['pct_diff'], 1)} % (+{round(nej_skokan['diff_avg'], 2)} Ø/hod)"
                 else:
                     skokan_jmeno = "—"
                     skokan_popis = "1. turnaj / beze skoku"
@@ -1255,10 +1255,11 @@ if all_stats:
             st.markdown("---")
             st.markdown("### 🚀 5. Skokan turnaje a Forma hráče")
             st.markdown("""
-            Oceňujeme progres a růst výkonnosti mezi jednotlivými turnaji:
-            * **🚀 Skokan turnaje:** Hráč, který dosáhl největšího zlepšení $\\varnothing/\\text{hod}$ oproti svému předchozímu odehranému turnaji:
-            $$\\Delta \\varnothing = \\varnothing_{\\text{aktuální}} - \\varnothing_{\\text{předchozí}}$$
-            Hráč za tento skok navíc získává přímý bonus do ligových bodů: $\\text{Bonus} = \\max(0, \\Delta \\varnothing \\times 2)$.  
+            Oceňujeme progres a relativní růst výkonnosti mezi jednotlivými turnaji:
+            * **🚀 Skokan turnaje:** Hráč, který dosáhl největšího procentuálního zlepšení $\\varnothing/\\text{hod}$ oproti svému předchozímu odehranému turnaji:
+            $$\\text{Zlepšení } \\% = \\frac{\\varnothing_{\\text{aktuální}} - \\varnothing_{\\text{předchozí}}}{\\varnothing_{\\text{předchozí}}} \\times 100$$
+            Hodnocení podle procent dává férovou šanci i méně zkušeným hráčům, kteří na sobě zapracovali a udělali největší výkonnostní skok.  
+            Hráč za tento skok navíc získává přímý bonus do ligových bodů: $\\text{Bonus} = \\max(0, \\text{Zlepšení } \\% / 10)$.  
             *(U prvního turnaje v historii nebo u nováčka se zobrazuje pomlčka, protože chybí srovnávací data).*
             * **📈 Ukazatel formy (v profilu a tabulce):**
               * <span style="color:#28a745;font-weight:bold;">▲ Rostoucí forma:</span> Zlepšení průměru na hod o **+5.0 % a více**.
