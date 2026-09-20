@@ -536,30 +536,24 @@ if is_admin:
                 nahoz_d = f"{int(max_r['Max'])} b. v jednom kole"
                 vit_j = f"{df_vysledky.iloc[0]['Hráč']} ({df_vysledky.iloc[0]['Tým']})"
                 vit_b = f"{df_vysledky.iloc[0]['Celkem']} b."
-                w_j = f"{df_vysledky.iloc[-1]['Hráč']} ({df_vysledky.iloc[-1]['Tým']})"
-                w_b = f"{df_vysledky.iloc[-1]['Celkem']} b."
             else:
-                nahoz_j, nahoz_d, vit_j, vit_b, w_j, w_b = "—", "", "—", "", "—", ""
+                nahoz_j, nahoz_d, vit_j, vit_b = "—", "", "—", ""
             
             vit_t_j = df_tymy.iloc[0]["Tým"] if not df_tymy.empty else "—"
             vit_t_b = f"{df_tymy.iloc[0]['Celkem']} b." if not df_tymy.empty else ""
 
             st.markdown("### 🏅 Ocenění turnaje")
-            c_oc1, c_oc2, c_oc3 = st.columns(3)
+            c_oc1, c_oc2, c_oc3, c_oc4, c_oc5 = st.columns(5)
             with c_oc1:
                 st.metric("🥇 Vítěz jednotlivců", vit_j, vit_b)
             with c_oc2:
                 st.metric("🏆 Vítězný tým", vit_t_j, vit_t_b)
             with c_oc3:
                 st.metric("🔥 Nejlepší nához", nahoz_j, nahoz_d)
-
-            c_oc4, c_oc5, c_oc6 = st.columns(3)
             with c_oc4:
                 st.metric("🎯 Nejvyrovnanější hody", stab_j, stab_d)
             with c_oc5:
                 st.metric("🚀 Skokan turnaje", skokan_j, skokan_d)
-            with c_oc6:
-                st.metric("💩 Cena útěchy (poslední)", w_j, w_b)
 
             st.markdown("---")
             st.subheader("👤 Kompletní pořadí jednotlivců")
