@@ -236,7 +236,9 @@ def display_tournament_table(df, max_rows=10):
     components.html(html_content, height=iframe_height)
 
 def vypocitat_pokerove_body(body, umisteni, pocet_hracu):
-    return math.sqrt(pocet_hracu) * (body / math.log(umisteni + 1, 2))
+    # Vyvážený pozvolný pokles bodů dle umístění (1. místo = dělitel 1.0, 2. místo = 1.16, 3. místo = 1.29 atd.)
+    divisor = math.log(umisteni + 3, 2) / 2.0
+    return math.sqrt(pocet_hracu) * (body / divisor)
 
 def generate_comparison_table(hrac1, hrac2, df_final):
     h1 = df_final[df_final['Jméno'] == hrac1].iloc[0]
@@ -999,10 +1001,10 @@ if all_stats:
             st.markdown("---")
             st.markdown("### ⭐ 2. Výpočet Ligových bodů (Turnajový ranking)")
             st.markdown("""
-            Ligové body neodráží pouze umístění na bedně, ale zohledňují **sílu konkurence** i **celkový bodový výkon** pomocí osvědčeného rankingového vzorce:
-            $$\\text{Body z turnaje} = \\sqrt{N} \\times \\frac{\\text{Nahrané body}}{\\log_2(\\text{Umístění} + 1)}$$
+            Ligové body neodráží pouze umístění na bedně, ale zohledňují **sílu konkurence** i **celkový bodový výkon** pomocí vyváženého rankingového vzorce:
+            $$\\text{Body z turnaje} = \\sqrt{N} \\times \\frac{\\text{Nahrané body}}{\\log_2(\\text{Umístění} + 3) / 2.0}$$
             * $N$ = celkový počet hráčů na daném turnaji *(větší turnaj = větší zisk bodů)*.
-            * $\\text{Umístění}$ = pořadí hráče na turnaji *(1. místo získá dělitel 1.0, 2. místo 1.58 atd.)*.
+            * $\\text{Umístění}$ = pořadí hráče na turnaji *(1. místo má dělitel 1.0, 2. místo 1.16, 3. místo 1.29 atd. pro plynulý a férový pokles)*.
             * **Průměrování na turnaj:** Pro dlouhodobou ligovou tabulku se ligové body dělí počtem odehraných turnajů. Hráči tak nerostou body do nekonečna pouhou účastí, ale rozhoduje **stabilní kvalita výkonů**.
             """)
 
