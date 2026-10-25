@@ -132,7 +132,14 @@ def get_file_path():
     return os.path.join(DATA_DIR, nazev)
 
 def get_previous_player_averages(current_filepath=None):
-    player_history = {}
+    name_to_id = {}
+    df_h = load_hraci_csv()
+    if not df_h.empty:
+        for _, r in df_h.iterrows():
+            name_to_id[str(r["Jméno"]).strip().lower()] = int(r["ID"])
+
+    history_by_id = {}
+    history_by_name = {}
     if os.path.exists(DATA_DIR):
         file_list = [f for f in os.listdir(DATA_DIR) if f.endswith('.json')]
         parsed_files = []
@@ -150,16 +157,43 @@ def get_previous_player_averages(current_filepath=None):
                 with open(fp, 'r', encoding='utf-8') as f:
                     d = json.load(f)
                 limit = d.get("limit_hodu", 15)
+                p_ids = d.get("player_ids", {})
                 for team in d.get('teams', {}).values():
                     for name, rounds in team.items():
                         name_clean = name.strip()
                         if rounds and sum(rounds) > 0:
                             hody = len(rounds) * limit
                             avg = sum(rounds) / hody if hody > 0 else 0
-                            player_history[name_clean] = avg
+                            
+                            p_id = p_ids.get(name_clean)
+                            if p_id is None:
+                                p_id = name_to_id.get(name_clean.lower())
+                            if p_id is None:
+                                for csv_name, csv_id in name_to_id.items():
+                                    if csv_name.startswith(name_clean.lower()) or name_clean.lower().startswith(csv_name):
+                                        p_id = csv_id
+                                        break
+                            
+                            if p_id is not None:
+                                history_by_id[int(p_id)] = avg
+                            history_by_name[name_clean.lower()] = avg
+                            history_by_name[name_clean] = avg
             except Exception:
                 continue
-    return player_history
+    return {"by_id": history_by_id, "by_name": history_by_name}
+
+def get_player_prev_avg(history_dict, p_name, p_id=None):
+    if not isinstance(history_dict, dict):
+        return None
+    by_id = history_dict.get("by_id", {})
+    by_name = history_dict.get("by_name", {})
+    if p_id is not None and int(p_id) in by_id:
+        return by_id[int(p_id)]
+    if p_name in by_name:
+        return by_name[p_name]
+    if p_name.lower() in by_name:
+        return by_name[p_name.lower()]
+    return history_dict.get(p_name)
 
 data = load_data()
 is_admin = st.query_params.get("admin") == "yes"
@@ -454,14 +488,48 @@ if is_admin:
             st.header("🏆 Oficiální vyhlášení turnaje")
             limit_h = data.get("limit_hodu", 15)
             
+            # Načtení historie předchozích odehraných turnajů hráčů (podle ID i jména)
+            prev_history = get_previous_player_averages(get_file_path())
+            curr_player_ids = data.get("player_ids", {})
+            df_h_map = load_hraci_csv()
+            csv_map = {str(r["Jméno"]).strip().lower(): int(r["ID"]) for _, r in df_h_map.iterrows()} if not df_h_map.empty else {}
+            
             rows_j = []
             stabilita_hraci = []
+            skokani = []
             for t, ps in data["teams"].items():
                 for p, h in ps.items():
                     celkem = sum(h)
                     max_kolo = max(h) if h else 0
                     hody_cnt = len(h) * limit_h
                     prum_hod = celkem / hody_cnt if hody_cnt > 0 else 0
+                    
+                    # Zjištění ID hráče pro dohledání formy z jeho posledního odehraného turnaje
+                    p_clean = p.strip()
+                    pid = curr_player_ids.get(p_clean)
+                    if pid is None:
+                        pid = csv_map.get(p_clean.lower())
+                    if pid is None:
+                        for c_name, c_id in csv_map.items():
+                            if c_name.startswith(p_clean.lower()) or p_clean.lower().startswith(c_name):
+                                pid = c_id
+                                break
+                    
+                    pa = get_player_prev_avg(prev_history, p_clean, pid)
+                    forma_str = "—"
+                    if pa is not None and pa > 0 and celkem > 0:
+                        diff = prum_hod - pa
+                        pct = (diff / pa * 100)
+                        sign = "+" if diff > 0 else ""
+                        if pct >= 5.0:
+                            forma_str = f"▲ {sign}{pct:.1f} %"
+                        elif pct <= -5.0:
+                            forma_str = f"▼ {pct:.1f} %"
+                        else:
+                            forma_str = f"▬ {sign}{pct:.1f} %"
+                        
+                        if diff > 0:
+                            skokani.append({"Hráč": p, "Tým": t, "diff": diff, "pct": pct})
                     
                     rows_j.append({
                         "Hráč": p,
@@ -472,7 +540,8 @@ if is_admin:
                         "4.": h[3] if len(h) > 3 else 0,
                         "Celkem": celkem,
                         "Max": max_kolo,
-                        "Ø/hod": f"{prum_hod:.2f}"
+                        "Ø/hod": f"{prum_hod:.2f}",
+                        "Forma": forma_str
                     })
                     
                     odehrana_kola = [x for x in h if x > 0]
@@ -509,18 +578,6 @@ if is_admin:
                 stab_j, stab_d = "—", "Nedostatek kol"
                 
             # 2. Skokan turnaje
-            prev_avgs = get_previous_player_averages(get_file_path())
-            skokani = []
-            for r in rows_j:
-                pn = r["Hráč"]
-                ca = float(r["Ø/hod"])
-                if pn in prev_avgs and r["Celkem"] > 0:
-                    pa = prev_avgs[pn]
-                    diff = ca - pa
-                    pct = (diff / pa * 100) if pa > 0 else 0
-                    if diff > 0:
-                        skokani.append({"Hráč": pn, "Tým": r["Tým"], "diff": diff, "pct": pct})
-            
             if skokani:
                 nej_sk = max(skokani, key=lambda x: (x["pct"], x["diff"]))
                 skokan_j = f"{nej_sk['Hráč']} ({nej_sk['Tým']})"

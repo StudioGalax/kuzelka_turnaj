@@ -271,7 +271,7 @@ def vypocitat_pokerove_body(body, umisteni, pocet_hracu):
     divisor = math.log(umisteni + 3, 2) / 2.0
     return math.sqrt(pocet_hracu) * (body / divisor)
 
-def generate_comparison_table(hrac1, hrac2, df_final):
+def generate_comparison_table(hrac1, hrac2, df_final, filtr_hodu="Všechny formáty"):
     h1 = df_final[df_final['Jméno'] == hrac1].iloc[0]
     h2 = df_final[df_final['Jméno'] == hrac2].iloc[0]
     
@@ -297,109 +297,140 @@ def generate_comparison_table(hrac1, hrac2, df_final):
     b_stab1, b_stab2 = round(h1['Bonus_Stabilita'], 2), round(h2['Bonus_Stabilita'], 2)
     odch1, odch2 = round(h1['Odchylka'], 2), round(h2['Odchylka'], 2)
     p1, p2 = round(h1['Průměr na hod'], 2), round(h2['Průměr na hod'], 2)
-    rec1, rec2 = int(h1['Max_Kolo']), int(h2['Max_Kolo'])
     t1, t2 = int(h1['Pocet_Turnaju']), int(h2['Pocet_Turnaju'])
     hod1, hod2 = int(h1['Celkem_Hodu']), int(h2['Celkem_Hodu'])
     f1_pct, f2_pct = h1['Forma_Pct'], h2['Forma_Pct']
     
-    html = f"""
-    <style>
-        .comp-table {{
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 15px;
-            margin-top: 10px;
-            margin-bottom: 25px;
-        }}
-        .comp-table th {{
-            background-color: #edf2f7;
-            color: #2d3748;
-            font-weight: bold;
-            padding: 12px;
-            border-bottom: 2px solid #cbd5e0;
-            text-align: center;
-        }}
-        .comp-table td {{
-            padding: 12px;
-            border-bottom: 1px solid #e2e8f0;
-            text-align: center;
-            color: #1a202c;
-        }}
-        .comp-table tr:hover {{
-            background-color: #f7fafc;
-        }}
-        .metric-name {{
-            font-weight: 600;
-            text-align: left !important;
-            color: #2d3748;
-            width: 30%;
-        }}
-        .winner-cell {{
-            background-color: #e6fffa;
-            font-weight: bold;
-        }}
-    </style>
-    <table class="comp-table">
-        <thead>
-            <tr>
-                <th style="text-align: left;">Statistika</th>
-                <th>👤 {hrac1}</th>
-                <th>👥 {hrac2}</th>
-                <th>Rozdíl (pro {hrac1})</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td class="metric-name">🏆 Zařazení (Liga)</td>
-                <td>{l1}</td>
-                <td>{l2}</td>
-                <td>-</td>
-            </tr>
-            <tr>
-                <td class="metric-name">🏅 Pořadí v lize</td>
-                <td class="{"winner-cell" if r1 < r2 else ""}">#{r1}</td>
-                <td class="{"winner-cell" if r2 < r1 else ""}">#{r2}</td>
-                <td>{format_diff(r1 - r2, is_rank=True)}</td>
-            </tr>
-            <tr>
-                <td class="metric-name">⭐ Ligové body</td>
-                <td class="{"winner-cell" if b1 > b2 else ""}">{b1} b.</td>
-                <td class="{"winner-cell" if b2 > b1 else ""}">{b2} b.</td>
-                <td>{format_diff(b1 - b2)} b.</td>
-            </tr>
-            <tr>
-                <td class="metric-name">⚖️ Bonus za stabilitu</td>
-                <td class="{"winner-cell" if b_stab1 > b_stab2 else ""}">{b_stab1:.2f} b. <span style="font-size: 12px; color: #6c757d;">(σ = {odch1:.1f})</span></td>
-                <td class="{"winner-cell" if b_stab2 > b_stab1 else ""}">{b_stab2:.2f} b. <span style="font-size: 12px; color: #6c757d;">(σ = {odch2:.1f})</span></td>
-                <td>{format_diff(b_stab1 - b_stab2)} b.</td>
-            </tr>
-            <tr>
-                <td class="metric-name">🎯 Celkový Ø/hod</td>
-                <td class="{"winner-cell" if p1 > p2 else ""}">{p1}</td>
-                <td class="{"winner-cell" if p2 > p1 else ""}">{p2}</td>
-                <td>{format_diff(p1 - p2)}</td>
-            </tr>
-            <tr>
-                <td class="metric-name">🔥 Osobní rekord</td>
-                <td class="{"winner-cell" if rec1 > rec2 else ""}">{rec1} b. / kolo</td>
-                <td class="{"winner-cell" if rec2 > rec1 else ""}">{rec2} b. / kolo</td>
-                <td>{format_diff(rec1 - rec2)} b.</td>
-            </tr>
-            <tr>
-                <td class="metric-name">📈 Aktuální forma</td>
-                <td>{round(f1_pct, 1)} %</td>
-                <td>{round(f2_pct, 1)} %</td>
-                <td>{format_diff(f1_pct - f2_pct)} %</td>
-            </tr>
-            <tr>
-                <td class="metric-name">🎳 Odehrané turnaje (hodů)</td>
-                <td>{t1} ({hod1} h.)</td>
-                <td>{t2} ({hod2} h.)</td>
-                <td>{format_diff(t1 - t2)} turnajů</td>
-            </tr>
-        </tbody>
-    </table>
-    """
+    rec10_1 = int(h1.get('Max_Kolo_10', 0))
+    rec10_2 = int(h2.get('Max_Kolo_10', 0))
+    rec15_1 = int(h1.get('Max_Kolo_15', 0))
+    rec15_2 = int(h2.get('Max_Kolo_15', 0))
+
+    def render_record_row(title, r1_val, r2_val):
+        if r1_val > 0 and r2_val > 0:
+            w1 = 'class="winner-cell"' if r1_val > r2_val else ""
+            w2 = 'class="winner-cell"' if r2_val > r1_val else ""
+            diff_str = f"{format_diff(r1_val - r2_val)} b."
+            c1_str = f"{r1_val} b. / kolo"
+            c2_str = f"{r2_val} b. / kolo"
+        elif r1_val > 0:
+            w1 = 'class="winner-cell"'
+            w2 = ""
+            c1_str = f"{r1_val} b. / kolo"
+            c2_str = '<span style="color:#6c757d;">—</span>'
+            diff_str = "—"
+        elif r2_val > 0:
+            w1 = ""
+            w2 = 'class="winner-cell"'
+            c1_str = '<span style="color:#6c757d;">—</span>'
+            c2_str = f"{r2_val} b. / kolo"
+            diff_str = "—"
+        else:
+            w1, w2 = "", ""
+            c1_str = '<span style="color:#6c757d;">—</span>'
+            c2_str = '<span style="color:#6c757d;">—</span>'
+            diff_str = "—"
+            
+        return f'<tr><td class="metric-name">{title}</td><td {w1}>{c1_str}</td><td {w2}>{c2_str}</td><td>{diff_str}</td></tr>'
+
+    if filtr_hodu == "10 hodů / kolo":
+        record_rows_html = render_record_row("🔥 Osobní rekord (10 hodů)", rec10_1, rec10_2)
+    elif filtr_hodu == "15 hodů / kolo":
+        record_rows_html = render_record_row("🔥 Osobní rekord (15 hodů)", rec15_1, rec15_2)
+    else:
+        record_rows_html = render_record_row("🔥 Osobní rekord (10 hodů)", rec10_1, rec10_2) + render_record_row("🔥 Osobní rekord (15 hodů)", rec15_1, rec15_2)
+    
+    html = f"""<style>
+.comp-table {{
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+    margin-top: 10px;
+    margin-bottom: 25px;
+}}
+.comp-table th {{
+    background-color: #edf2f7;
+    color: #2d3748;
+    font-weight: bold;
+    padding: 12px;
+    border-bottom: 2px solid #cbd5e0;
+    text-align: center;
+}}
+.comp-table td {{
+    padding: 12px;
+    border-bottom: 1px solid #e2e8f0;
+    text-align: center;
+    color: #1a202c;
+}}
+.comp-table tr:hover {{
+    background-color: #f7fafc;
+}}
+.metric-name {{
+    font-weight: 600;
+    text-align: left !important;
+    color: #2d3748;
+    width: 30%;
+}}
+.winner-cell {{
+    background-color: #e6fffa;
+    font-weight: bold;
+}}
+</style>
+<table class="comp-table">
+<thead>
+<tr>
+<th style="text-align: left;">Statistika</th>
+<th>👤 {hrac1}</th>
+<th>👥 {hrac2}</th>
+<th>Rozdíl (pro {hrac1})</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="metric-name">🏆 Zařazení (Liga)</td>
+<td>{l1}</td>
+<td>{l2}</td>
+<td>-</td>
+</tr>
+<tr>
+<td class="metric-name">🏅 Pořadí v lize</td>
+<td class="{"winner-cell" if r1 < r2 else ""}">#{r1}</td>
+<td class="{"winner-cell" if r2 < r1 else ""}">#{r2}</td>
+<td>{format_diff(r1 - r2, is_rank=True)}</td>
+</tr>
+<tr>
+<td class="metric-name">⭐ Ligové body</td>
+<td class="{"winner-cell" if b1 > b2 else ""}">{b1} b.</td>
+<td class="{"winner-cell" if b2 > b1 else ""}">{b2} b.</td>
+<td>{format_diff(b1 - b2)} b.</td>
+</tr>
+<tr>
+<td class="metric-name">⚖️ Bonus za stabilitu</td>
+<td class="{"winner-cell" if b_stab1 > b_stab2 else ""}">{b_stab1:.2f} b. <span style="font-size: 12px; color: #6c757d;">(σ = {odch1:.1f})</span></td>
+<td class="{"winner-cell" if b_stab2 > b_stab1 else ""}">{b_stab2:.2f} b. <span style="font-size: 12px; color: #6c757d;">(σ = {odch2:.1f})</span></td>
+<td>{format_diff(b_stab1 - b_stab2)} b.</td>
+</tr>
+<tr>
+<td class="metric-name">🎯 Celkový Ø/hod</td>
+<td class="{"winner-cell" if p1 > p2 else ""}">{p1}</td>
+<td class="{"winner-cell" if p2 > p1 else ""}">{p2}</td>
+<td>{format_diff(p1 - p2)}</td>
+</tr>
+{record_rows_html}
+<tr>
+<td class="metric-name">📈 Aktuální forma</td>
+<td>{round(f1_pct, 1)} %</td>
+<td>{round(f2_pct, 1)} %</td>
+<td>{format_diff(f1_pct - f2_pct)} %</td>
+</tr>
+<tr>
+<td class="metric-name">🎳 Odehrané turnaje (hodů)</td>
+<td>{t1} ({hod1} h.)</td>
+<td>{t2} ({hod2} h.)</td>
+<td>{format_diff(t1 - t2)} turnajů</td>
+</tr>
+</tbody>
+</table>"""
     return html
 
 def render_player_profile(df_final, df_raw):
@@ -418,7 +449,11 @@ def render_player_profile(df_final, df_raw):
         filtr_hodu = st.selectbox("🎯 Filtr formátu turnaje:", ["Všechny formáty", "10 hodů / kolo", "15 hodů / kolo"])
 
     hrac_info = df_final[df_final['Jméno'] == vybrany_hrac].iloc[0]
-    hrac_raw = df_raw[df_raw['Jméno'] == vybrany_hrac].sort_values('Datum_Sort').copy()
+    p_id = hrac_info.get('ID_Hrace')
+    if p_id is not None and not pd.isna(p_id):
+        hrac_raw = df_raw[df_raw['ID_Hrace'] == int(p_id)].sort_values('Datum_Sort').copy()
+    else:
+        hrac_raw = df_raw[df_raw['Jméno'] == vybrany_hrac].sort_values('Datum_Sort').copy()
     
     if filtr_hodu == "10 hodů / kolo":
         hrac_filtrovany = hrac_raw[hrac_raw['limit_hodu'] == 10].copy()
@@ -435,15 +470,29 @@ def render_player_profile(df_final, df_raw):
     with m3:
         st.metric("🎯 Celkový Ø/hod", f"{round(hrac_info['Průměr na hod'], 2)}")
     with m4:
+        posl_t = hrac_info.get('Posledni_Turnaj', '-')
+        pred_t = hrac_info.get('Predchozi_Turnaj', '-')
+        forma_help = f"Srovnání posledního odehraného turnaje ({posl_t}) s předchozím odehraným turnajem ({pred_t})" if hrac_info['Pocet_Turnaju'] >= 2 else "1. odehraný turnaj"
         if hrac_info['Forma_Pct'] >= 5.0:
-            st.metric("📈 Aktuální forma", "Rostoucí", f"+{round(hrac_info['Forma_Pct'], 1)} %")
+            st.metric("📈 Aktuální forma", "Rostoucí", f"+{round(hrac_info['Forma_Pct'], 1)} %", help=forma_help)
         elif hrac_info['Forma_Pct'] <= -5.0:
-            st.metric("📉 Aktuální forma", "Klesající", f"{round(hrac_info['Forma_Pct'], 1)} %")
+            st.metric("📉 Aktuální forma", "Klesající", f"{round(hrac_info['Forma_Pct'], 1)} %", help=forma_help)
         else:
             delta_val = f"{round(hrac_info['Forma_Pct'], 1)} %" if hrac_info['Pocet_Turnaju'] >= 2 else "1. turnaj"
-            st.metric("📊 Aktuální forma", "Stabilní", delta_val, delta_color="off")
+            st.metric("📊 Aktuální forma", "Stabilní", delta_val, delta_color="off", help=forma_help)
     with m5:
-        st.metric("🔥 Osobní rekord", f"{int(hrac_info['Max_Kolo'])} b. / kolo")
+        max_10 = int(hrac_info.get('Max_Kolo_10', 0))
+        max_15 = int(hrac_info.get('Max_Kolo_15', 0))
+        if filtr_hodu == "10 hodů / kolo":
+            rec_str = f"{max_10} b. / kolo" if max_10 > 0 else "—"
+            st.metric("🔥 Osobní rekord (10h)", rec_str)
+        elif filtr_hodu == "15 hodů / kolo":
+            rec_str = f"{max_15} b. / kolo" if max_15 > 0 else "—"
+            st.metric("🔥 Osobní rekord (15h)", rec_str)
+        else:
+            s_10 = f"{max_10} b." if max_10 > 0 else "—"
+            s_15 = f"{max_15} b." if max_15 > 0 else "—"
+            st.metric("🔥 Osobní rekord", f"{s_10} (10h)", f"15h: {s_15}", delta_color="off")
     with m6:
         st.metric("🎳 Turnaje", f"{int(hrac_info['Pocet_Turnaju'])} odehráno", f"{int(hrac_info['Celkem_Hodu'])} hodů")
         
@@ -456,7 +505,12 @@ def render_player_profile(df_final, df_raw):
     # Pokud porovnáváme, načteme a vyfiltrujeme i druhého hráče
     hrac2_filtrovany = pd.DataFrame()
     if porovnavany_hrac:
-        hrac2_raw = df_raw[df_raw['Jméno'] == porovnavany_hrac].sort_values('Datum_Sort').copy()
+        h2_info = df_final[df_final['Jméno'] == porovnavany_hrac].iloc[0]
+        p2_id = h2_info.get('ID_Hrace')
+        if p2_id is not None and not pd.isna(p2_id):
+            hrac2_raw = df_raw[df_raw['ID_Hrace'] == int(p2_id)].sort_values('Datum_Sort').copy()
+        else:
+            hrac2_raw = df_raw[df_raw['Jméno'] == porovnavany_hrac].sort_values('Datum_Sort').copy()
         if filtr_hodu == "10 hodů / kolo":
             hrac2_filtrovany = hrac2_raw[hrac2_raw['limit_hodu'] == 10].copy()
         elif filtr_hodu == "15 hodů / kolo":
@@ -470,7 +524,11 @@ def render_player_profile(df_final, df_raw):
     # Zobrazení tabulky přímého srovnání
     if porovnavany_hrac:
         st.markdown(f"### ⚖️ Přímé srovnání: {vybrany_hrac} vs. {porovnavany_hrac}")
-        st.markdown(generate_comparison_table(vybrany_hrac, porovnavany_hrac, df_final), unsafe_allow_html=True)
+        comp_html = generate_comparison_table(vybrany_hrac, porovnavany_hrac, df_final, filtr_hodu=filtr_hodu)
+        if hasattr(st, "html"):
+            st.html(comp_html)
+        else:
+            st.markdown(comp_html, unsafe_allow_html=True)
 
     graf_data = []
     # Hlavní hráč
@@ -730,7 +788,8 @@ def render_vyrovnanost_a_skokani(df_raw, df_final):
     skoky_turnaje = []
     celkovy_progres_rows = []
     
-    for hrac_jmeno, group in df_raw.groupby('Jméno'):
+    for p_id, group in df_raw.groupby('ID_Hrace'):
+        hrac_jmeno = group.iloc[-1]['Jméno']
         s = group.sort_values('Datum_Sort').reset_index(drop=True)
         if len(s) >= 2:
             for i in range(len(s) - 1):
@@ -940,17 +999,23 @@ if all_stats:
     df_raw = pd.DataFrame(all_stats)
     
     def process_player(group):
+        p_name = group.iloc[-1]['Jméno']
+        p_id = group.name
         vsechny_hody = [h for sublist in group['Surove_Body'] for h in sublist]
         celkem_hodů = sum(len(row['Surove_Body']) * row['limit_hodu'] for _, row in group.iterrows())
         odchylka = np.std(vsechny_hody) if len(vsechny_hody) > 0 else 0
         skokan = 0
         forma = '<span style="color:#6c757d;font-weight:bold;font-size:15px;">▬</span>'
         forma_pct = 0.0
+        posl_turnaj = "-"
+        pred_turnaj = "-"
         
         if len(group) >= 2:
             s = group.sort_values('Datum_Sort')
             last_row = s.iloc[-1]
             prev_row = s.iloc[-2]
+            posl_turnaj = last_row['Datum_Format']
+            pred_turnaj = prev_row['Datum_Format']
             
             last_hody = len(last_row['Surove_Body']) * last_row['limit_hodu']
             prev_hody = len(prev_row['Surove_Body']) * prev_row['limit_hodu']
@@ -971,14 +1036,22 @@ if all_stats:
             else:
                 forma = '<span style="color:#28a745;font-weight:bold;font-size:16px;">▲</span>' if last_avg > 0 else '<span style="color:#6c757d;font-weight:bold;font-size:15px;">▬</span>'
                 skokan = 0
+        elif len(group) == 1:
+            posl_turnaj = group.iloc[0]['Datum_Format']
         
         # Průměr na turnaj, aby čísla nerostla do nekonečna
         bonus_stabilita = max(0, (50 - odchylka) / 20)
         prumerne_liga_body = (group['Ligove_Body'].sum() + bonus_stabilita + skokan) / len(group)
         prumer_na_hod = group['Body'].sum() / celkem_hodů if celkem_hodů > 0 else 0
+        rows_10 = group[group['limit_hodu'] == 10]
+        rows_15 = group[group['limit_hodu'] == 15]
+        max_kolo_10 = max((max(row['Surove_Body']) for _, row in rows_10.iterrows() if len(row['Surove_Body']) > 0), default=0)
+        max_kolo_15 = max((max(row['Surove_Body']) for _, row in rows_15.iterrows() if len(row['Surove_Body']) > 0), default=0)
         max_kolo = max((max(row['Surove_Body']) for _, row in group.iterrows() if len(row['Surove_Body']) > 0), default=0)
         
         return pd.Series({
+            "Jméno": p_name,
+            "ID_Hrace": p_id,
             "Liga Body": prumerne_liga_body, 
             "Průměr na hod": prumer_na_hod,
             "Forma": forma,
@@ -986,12 +1059,16 @@ if all_stats:
             "Pocet_Turnaju": len(group),
             "Celkem_Hodu": celkem_hodů,
             "Max_Kolo": max_kolo,
+            "Max_Kolo_10": max_kolo_10,
+            "Max_Kolo_15": max_kolo_15,
             "Celkem_Bodu": group['Body'].sum(),
             "Odchylka": odchylka,
-            "Bonus_Stabilita": bonus_stabilita
+            "Bonus_Stabilita": bonus_stabilita,
+            "Posledni_Turnaj": posl_turnaj,
+            "Predchozi_Turnaj": pred_turnaj
         })
 
-    df_final = df_raw.groupby('Jméno').apply(process_player, include_groups=False).reset_index()
+    df_final = df_raw.groupby('ID_Hrace').apply(process_player, include_groups=False).reset_index(drop=True)
     df_final['Liga_Rank'] = df_final['Liga Body'].rank(method='min', ascending=False).astype(int)
     df_final['Liga'] = np.where(df_final['Průměr na hod'] > 4.0, "🏆 Master Liga", "🥈 Challenge Liga")
 
@@ -1072,19 +1149,67 @@ if all_stats:
             limit_h = turnaj["limit_hodu"]
             teams_dict = t_data.get("teams", {})
             
-            # Sestavení dat hráčů
+            # Sestavení dat hráčů a vyhodnocení formy podle ID
             hraci_rows = []
             max_kol = max((len(r) for p in teams_dict.values() for r in p.values()), default=4)
+            skokani = []
+            stabilita_hraci = []
+            t_player_ids = t_data.get("player_ids", {})
             
             for team_name, players in teams_dict.items():
                 for player_name, rounds in players.items():
+                    p_name_clean = player_name.strip()
+                    p_id = t_player_ids.get(p_name_clean)
+                    if p_id is None:
+                        p_id = name_to_id.get(p_name_clean.lower())
+                    if p_id is None:
+                        for csv_name, csv_id in name_to_id.items():
+                            if csv_name.startswith(p_name_clean.lower()) or p_name_clean.lower().startswith(csv_name):
+                                p_id = csv_id
+                                break
+                    if p_id is not None:
+                        p_id = int(p_id)
+                        display_name = id_to_name.get(p_id, p_name_clean)
+                    else:
+                        display_name = p_name_clean
+
                     celkem = sum(rounds)
                     hody_celkem = len(rounds) * limit_h
                     prumer_hod = celkem / hody_celkem if hody_celkem > 0 else 0
                     max_kolo = max(rounds) if rounds else 0
                     
+                    # Forma v porovnání s posledním odehraným turnajem hráče (vyhledání podle ID)
+                    if p_id is not None:
+                        prev_tourneys = df_raw[(df_raw['ID_Hrace'] == p_id) & (df_raw['Datum_Sort'] < turnaj['sort_key'])].sort_values('Datum_Sort')
+                    else:
+                        prev_tourneys = df_raw[(df_raw['Jméno'].str.lower() == display_name.lower()) & (df_raw['Datum_Sort'] < turnaj['sort_key'])].sort_values('Datum_Sort')
+                    
+                    forma_badge = '<span style="color:#6c757d;">—</span>'
+                    if not prev_tourneys.empty and celkem > 0:
+                        prev_row = prev_tourneys.iloc[-1]
+                        prev_hody = len(prev_row['Surove_Body']) * prev_row['limit_hodu']
+                        prev_avg = prev_row['Body'] / prev_hody if prev_hody > 0 else 0
+                        
+                        if prev_avg > 0:
+                            diff_avg = prumer_hod - prev_avg
+                            pct_diff = ((prumer_hod - prev_avg) / prev_avg) * 100
+                            sign = "+" if diff_avg > 0 else ""
+                            if pct_diff >= 5.0:
+                                forma_badge = f'<span style="color:#28a745;font-weight:bold;">▲ {sign}{round(pct_diff, 1)} %</span>'
+                            elif pct_diff <= -5.0:
+                                forma_badge = f'<span style="color:#dc3545;font-weight:bold;">▼ {round(pct_diff, 1)} %</span>'
+                            else:
+                                forma_badge = f'<span style="color:#6c757d;font-weight:bold;">▬ {sign}{round(pct_diff, 1)} %</span>'
+                            
+                            if diff_avg > 0:
+                                skokani.append({
+                                    "Hráč": display_name,
+                                    "diff_avg": diff_avg,
+                                    "pct_diff": pct_diff
+                                })
+                    
                     row = {
-                        "Hráč": player_name,
+                        "Hráč": display_name,
                         "Tým": team_name,
                     }
                     for i in range(max_kol):
@@ -1092,8 +1217,17 @@ if all_stats:
                     row["Celkem"] = celkem
                     row["Liga Body"] = 0.0
                     row["Ø/hod"] = round(prumer_hod, 2)
+                    row["Forma"] = forma_badge
                     row["Max"] = max_kolo
                     hraci_rows.append(row)
+                    
+                    if len(rounds) >= 2:
+                        r_avgs = [r / limit_h for r in rounds]
+                        stabilita_hraci.append({
+                            "Hráč": display_name,
+                            "std_hod": np.std(r_avgs),
+                            "std_body": np.std(rounds)
+                        })
                     
             df_turnaj_hraci = pd.DataFrame(hraci_rows)
             if not df_turnaj_hraci.empty:
@@ -1125,19 +1259,6 @@ if all_stats:
             # Rychlé shrnutí / metriky turnaje
             if not df_turnaj_hraci.empty and not df_turnaj_tymy.empty:
                 # 1. Nejvyrovnanější výkon (nejmenší směrodatná odchylka průměru na hod mezi koly)
-                stabilita_hraci = []
-                for team_name, players in teams_dict.items():
-                    for player_name, rounds in players.items():
-                        if len(rounds) >= 2:
-                            r_avgs = [r / limit_h for r in rounds]
-                            std_hod = np.std(r_avgs)
-                            std_body = np.std(rounds)
-                            stabilita_hraci.append({
-                                "Hráč": player_name,
-                                "std_hod": std_hod,
-                                "std_body": std_body
-                            })
-                
                 if stabilita_hraci:
                     nej_stabilni = min(stabilita_hraci, key=lambda x: x["std_hod"])
                     stabilni_jmeno = nej_stabilni["Hráč"]
@@ -1146,29 +1267,7 @@ if all_stats:
                     stabilni_jmeno = "—"
                     stabilni_popis = "Nedostatek kol"
 
-                # 2. Skokan turnaje (největší nárůst průměru na hod oproti předchozímu odehranému turnaji)
-                skokani = []
-                for team_name, players in teams_dict.items():
-                    for player_name, rounds in players.items():
-                        if rounds:
-                            curr_hody = len(rounds) * limit_h
-                            curr_avg = sum(rounds) / curr_hody if curr_hody > 0 else 0
-                            
-                            prev_tourneys = df_raw[(df_raw['Jméno'] == player_name) & (df_raw['Datum_Sort'] < turnaj['sort_key'])].sort_values('Datum_Sort')
-                            if not prev_tourneys.empty:
-                                prev_row = prev_tourneys.iloc[-1]
-                                prev_hody = len(prev_row['Surove_Body']) * prev_row['limit_hodu']
-                                prev_avg = prev_row['Body'] / prev_hody if prev_hody > 0 else 0
-                                
-                                diff_avg = curr_avg - prev_avg
-                                pct_diff = ((curr_avg - prev_avg) / prev_avg * 100) if prev_avg > 0 else 0
-                                if diff_avg > 0:
-                                    skokani.append({
-                                        "Hráč": player_name,
-                                        "diff_avg": diff_avg,
-                                        "pct_diff": pct_diff
-                                    })
-                
+                # 2. Skokan turnaje (největší nárůst průměru na hod oproti předchozímu odehranému turnaji hráče)
                 if skokani:
                     nej_skokan = max(skokani, key=lambda x: (x["pct_diff"], x["diff_avg"]))
                     skokan_jmeno = nej_skokan["Hráč"]
