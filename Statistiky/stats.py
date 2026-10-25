@@ -943,6 +943,116 @@ def render_vyrovnanost_a_skokani(df_raw, df_final):
             else:
                 st.info("Zatím není dostatek odehraných turnajů pro zobrazení celkového progresu.")
 
+def get_top3_liga_data(df_raw):
+    rows = []
+    for p_id, group in df_raw.groupby('ID_Hrace'):
+        p_name = group.iloc[-1]['Jméno']
+        tourneys = []
+        for _, r in group.iterrows():
+            pts = round(r['Ligove_Body'] / 10, 1)
+            tourneys.append({
+                'pts': pts,
+                'datum': r['Datum_Format'],
+                'limit': r['limit_hodu']
+            })
+        
+        # Seřadíme turnaje hráče sestupně podle ligových bodů
+        tourneys.sort(key=lambda x: x['pts'], reverse=True)
+        top3 = tourneys[:3]
+        total_pts = round(sum(t['pts'] for t in top3), 1)
+        
+        celkem_hodu = sum(len(row['Surove_Body']) * row['limit_hodu'] for _, row in group.iterrows())
+        prum_hod = group['Body'].sum() / celkem_hodu if celkem_hodu > 0 else 0
+        
+        liga_kat = "🏆 Master" if prum_hod > 4.0 else "🥈 Challenge"
+        
+        t1_val = f"{top3[0]['pts']:.1f} b." if len(top3) > 0 else "—"
+        t2_val = f"{top3[1]['pts']:.1f} b." if len(top3) > 1 else '<span style="color:#6c757d;">—</span>'
+        t3_val = f"{top3[2]['pts']:.1f} b." if len(top3) > 2 else '<span style="color:#6c757d;">—</span>'
+        
+        rows.append({
+            'ID_Hrace': p_id,
+            'Hráč': p_name,
+            'Kategorie': liga_kat,
+            'Odehráno turnajů': len(group),
+            'Započteno turnajů': len(top3),
+            '1. nejlepší': t1_val,
+            '2. nejlepší': t2_val,
+            '3. nejlepší': t3_val,
+            'Top 3 Body': total_pts,
+            'Top 3 Body_str': f'<span style="color:#1b5e20;font-weight:bold;font-size:15px;">{total_pts:.1f} b.</span>',
+            'Průměr na hod': round(prum_hod, 2),
+            'Průměr_str': f"{round(prum_hod, 2):.2f}"
+        })
+        
+    df_top3 = pd.DataFrame(rows)
+    if not df_top3.empty:
+        df_top3 = df_top3.sort_values(by=['Top 3 Body', 'Průměr na hod', 'Odehráno turnajů'], ascending=[False, False, False]).reset_index(drop=True)
+        df_top3.insert(0, 'Pořadí', range(1, len(df_top3) + 1))
+    return df_top3
+
+def render_top3_liga(df_raw, df_final):
+    st.markdown("## 🏅 Top 3 Liga")
+    st.caption("Férový celosezónní žebříček oceňující pravidelnou účast a nejlepší výkony hráčů.")
+    
+    st.info("💡 **Princip hodnocení Top 3 Ligy:** Do celkového pořadí se každému hráči započítává součet **3 nejvyšších bodových zisků** (ligových bodů) ze všech odehraných turnajů. Hráčům s 1 nebo 2 účastmi se započítává prostý součet všech turnajů, které odehráli (bez umělých penalizací). Tento systém efektivně motivuje pravidelné návštěvníky a chrání čelo tabulky před zkreslením náhodnými jednorázovými návštěvníky.")
+    
+    df_top3 = get_top3_liga_data(df_raw)
+    if df_top3.empty:
+        st.info("Zatím nejsou k dispozici žádná data.")
+        return
+        
+    # Medailisté
+    col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+    with col_m1:
+        if len(df_top3) >= 1:
+            h1 = df_top3.iloc[0]
+            st.metric("🥇 1. Místo Top 3 Ligy", h1["Hráč"], f"{h1['Top 3 Body']:.1f} b. ({h1['Započteno turnajů']} započt.)")
+    with col_m2:
+        if len(df_top3) >= 2:
+            h2 = df_top3.iloc[1]
+            st.metric("🥈 2. Místo", h2["Hráč"], f"{h2['Top 3 Body']:.1f} b. ({h2['Započteno turnajů']} započt.)")
+    with col_m3:
+        if len(df_top3) >= 3:
+            h3 = df_top3.iloc[2]
+            st.metric("🥉 3. Místo", h3["Hráč"], f"{h3['Top 3 Body']:.1f} b. ({h3['Započteno turnajů']} započt.)")
+    with col_m4:
+        hraci_3plus = len(df_top3[df_top3['Započteno turnajů'] == 3])
+        st.metric("🎳 Plný počet (3 turn.)", f"{hraci_3plus} hráčů", f"z {len(df_top3)} celkem")
+        
+    st.markdown("---")
+    
+    c_flt1, c_flt2 = st.columns([1, 1])
+    with c_flt1:
+        f_kat = st.selectbox("🎯 Filtrovat kategorii:", ["Všichni hráči", "🏆 Pouze Master Liga", "🥈 Pouze Challenge Liga"], key="top3_filter_kat")
+    with c_flt2:
+        hledat_hrace = st.text_input("🔍 Hledat hráče:", placeholder="Napište jméno...", key="top3_search_name")
+        
+    df_show = df_top3.copy()
+    if f_kat == "🏆 Pouze Master Liga":
+        df_show = df_show[df_show['Kategorie'] == "🏆 Master"].copy()
+    elif f_kat == "🥈 Pouze Challenge Liga":
+        df_show = df_show[df_show['Kategorie'] == "🥈 Challenge"].copy()
+        
+    if hledat_hrace:
+        df_show = df_show[df_show['Hráč'].str.contains(hledat_hrace, case=False, na=False)].copy()
+        
+    if not df_show.empty:
+        df_show['Pořadí'] = range(1, len(df_show) + 1)
+        
+        cols_display = [
+            'Pořadí', 'Hráč', 'Kategorie', 'Odehráno turnajů', 'Započteno turnajů',
+            '1. nejlepší', '2. nejlepší', '3. nejlepší', 'Top 3 Body_str', 'Průměr_str'
+        ]
+        df_table = df_show[cols_display].rename(columns={
+            'Top 3 Body_str': 'Top 3 Body celkem',
+            'Průměr_str': 'Ø/hod'
+        })
+        display_custom_styled_table(df_table, max_rows=15, left_cols=(2, 3))
+    else:
+        st.info("Podmínkám filtru neodpovídá žádný hráč.")
+
+
 # --- HLAVNÍ LOGIKA ---
 name_to_id, id_to_name = load_hraci_mapping()
 
@@ -1100,7 +1210,16 @@ if all_stats:
 
     st.title("📊 Statistiky kuželkářského turnaje")
     
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["📊 Ligová tabulka", "🎯 Průměr na hod", "👤 Profil hráče", "🏆 Top rekordy 10/15", "📜 Historie turnajů", "⚖️ Vyrovnanost & Skokani", "📖 Pravidla a bodování"])
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+        "📊 Ligová tabulka", 
+        "🏅 Top 3 Liga", 
+        "🎯 Průměr na hod", 
+        "👤 Profil hráče", 
+        "🏆 Top rekordy 10/15", 
+        "📜 Historie turnajů", 
+        "⚖️ Vyrovnanost & Skokani", 
+        "📖 Pravidla a bodování"
+    ])
 
     with tab1:
         PRUH_LIGY = 4.0
@@ -1113,15 +1232,18 @@ if all_stats:
             display_table(df_final[df_final['Průměr na hod'] <= PRUH_LIGY], 'Liga Body', ['Jméno', 'Liga Body', 'Ø/hod', 'Forma'])
 
     with tab2:
+        render_top3_liga(df_raw, df_final)
+
+    with tab3:
         c1, _ = st.columns(2)
         with c1:
             st.markdown("### 🎯 Pořadí dle průměru na hod")
             display_table(df_final, 'Průměr na hod', ['Jméno', 'Ø/hod', 'Liga Body', 'Forma'])
 
-    with tab3:
+    with tab4:
         render_player_profile(df_final, df_raw)
 
-    with tab4:
+    with tab5:
         # Rozdělíme záložku na dva sloupce
         c1, c2 = st.columns(2)
     
@@ -1133,7 +1255,7 @@ if all_stats:
             st.markdown("### 🔥 Top 10 (15 hodů)")
             display_table(get_rekordy(15), 'Max', ['Jméno', 'Max', 'Datum'])
 
-    with tab5:
+    with tab6:
         turnaje = get_all_tournaments()
         if not turnaje:
             st.info("Nebyly nalezeny žádné uložené turnaje.")
@@ -1305,10 +1427,10 @@ if all_stats:
                 if not df_turnaj_tymy.empty:
                     display_tournament_table(df_turnaj_tymy)
 
-    with tab6:
+    with tab7:
         render_vyrovnanost_a_skokani(df_raw, df_final)
 
-    with tab7:
+    with tab8:
         st.markdown("## 📖 Pravidla ligy, bodování a výpočet statistik")
         st.caption("Kompletní přehled fungování ligy, férového hodnocení a vzorců pro všechny hráče.")
         
@@ -1341,8 +1463,16 @@ if all_stats:
             * 🥈 **Challenge Liga:** Hráči s celkovým ligovým průměrem **do 4.00 bodu / hod**.
             """)
 
+            st.markdown("---")
+            st.markdown("### 🏅 4. Žebříček „Top 3 Liga“")
+            st.markdown("""
+            * **Motivace pravidelných hráčů:** Do celkového pořadí v *Top 3 Lize* se každému hráči započítávají **3 jeho nejlepší výsledky** (nejvyšší ligové body) ze všech odehraných turnajů.
+            * **Pravidlo pro menší počet účastí:** Hráčům s 1 nebo 2 účastmi se započítává prostý součet bodů z turnajů, které skutečně odehráli (bez jakýchkoliv umělých trestných bodů).
+            * **Proč Top 3?** Systém motivuje k pravidelné účasti a dává možnost vymazat nepovedený turnaj, zatímco efektivně řeší problém jednorázových návštěvníků s náhodně vysokým průměrem.
+            """)
+
         with c_p2:
-            st.markdown("### ⚖️ 4. Bonus za stabilitu a vyrovnanost hodů")
+            st.markdown("### ⚖️ 5. Bonus za stabilitu a vyrovnanost hodů")
             st.markdown("""
             Kuželky jsou o přesnosti a stabilitě bez výkyvů.
             * **Směrodatná odchylka ($\\sigma$):** Měří rozptyl bodů mezi jednotlivými náhozy/koly. Čím menší výkyvy hráč má, tím je jeho výkon spolehlivější.
@@ -1352,7 +1482,7 @@ if all_stats:
             """)
 
             st.markdown("---")
-            st.markdown("### 🚀 5. Skokan turnaje a Forma hráče")
+            st.markdown("### 🚀 6. Skokan turnaje a Forma hráče")
             st.markdown("""
             Oceňujeme progres a relativní růst výkonnosti mezi jednotlivými turnaji:
             * **🚀 Skokan turnaje:** Hráč, který dosáhl největšího procentuálního zlepšení $\\varnothing/\\text{hod}$ oproti svému předchozímu odehranému turnaji:
@@ -1367,7 +1497,7 @@ if all_stats:
             """, unsafe_allow_html=True)
 
             st.markdown("---")
-            st.markdown("### 👑 6. Top rekordy (10 a 15 hodů)")
+            st.markdown("### 👑 7. Top rekordy (10 a 15 hodů)")
             st.markdown("""
             V síni slávy *Top rekordy* evidujeme historicky nejvyšší náhozy v jednom kole zvlášť pro formát **10 hodů** a zvlášť pro **15 hodů**.
             """)
